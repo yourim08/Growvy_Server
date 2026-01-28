@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  spring:
+    image: growvy-spring:prod
+    container_name: spring-prod
+    restart: unless-stopped
+    env_file:
+      - ../env/prod.env
+    volumes:
+      - uploads-volume:/data/uploads
+    ports:         
+      - "8080:8080"
+    networks:
+      - mynet1
+      - mynet2
+    depends_on:
+      - db
+
+  db:
+    image: postgres:17-alpine
+    container_name: postgres-prod
+    restart: unless-stopped
+    env_file:
+      - ../env/prod.env
+    volumes:
+      - postgres-volume:/var/lib/postgresql/data
+    networks:
+      - mynet2
+
+volumes:
+  postgres-volume:
+  uploads-volume:
+
+networks:
+  mynet1:
+  mynet2:

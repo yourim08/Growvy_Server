@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  npm:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: npm-app-1
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "3000:81"
+    networks:
+      - mynet1          # spring-prod와 같은 네트워크
+      - default         # 필요하면 기존 NPM 기본 네트워크 유지
+
+networks:
+  mynet1:
+    external: true      # 기존 spring-compose에서 만든 네트워크 사용

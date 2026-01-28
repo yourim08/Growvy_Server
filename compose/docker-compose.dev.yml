@@ -1,0 +1,54 @@
+services:
+  spring:
+    platform: linux/amd64
+    build:
+      context: ../apps/growvy
+      dockerfile: Dockerfile
+    image: growvy-spring:dev
+    env_file:
+      - ../env/dev.env
+    volumes:
+      - uploads-volume:/data/uploads
+    ports:
+      - "8080:8080"
+    networks:
+      - mynet1
+      - mynet2
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  nginx:
+    platform: linux/amd64
+    build:
+      context: ../infra/nginx
+      dockerfile: Dockerfile
+    image: nginx-proxy:dev
+    ports:
+      - "80:80"
+    networks:
+      - mynet1
+    depends_on:
+      - spring
+    restart: unless-stopped
+
+  db:
+    platform: linux/amd64
+    image: postgres:17-alpine
+    env_file:
+      - ../env/dev.env
+    volumes:
+      - postgres-volume:/var/lib/postgresql/data
+    networks:
+      - mynet2
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+volumes:
+  postgres-volume:
+  uploads-volume:
+
+networks:
+  mynet1:
+  mynet2:
