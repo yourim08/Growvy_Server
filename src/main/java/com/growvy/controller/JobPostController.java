@@ -13,7 +13,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/posts")
+@RequestMapping("/api/posts")
 @RequiredArgsConstructor
 public class JobPostController {
 
@@ -21,7 +21,7 @@ public class JobPostController {
     private final JwtUtil jwtProvider;
     private final UserRepository userRepository;
 
-    @GetMapping
+    @GetMapping("/task")
     public List<JobPostResponse> getPosts(
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate,
