@@ -1,16 +1,14 @@
-package com.growvy.dto.res;
+package com.growvy.dto.req;
 
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
 @Setter
-public class JobPostResponse {
-    private Long id;
+public class JobPostRequest {
     private String title;
     private String companyName;
     private String description;
@@ -23,7 +21,5 @@ public class JobPostResponse {
     private String jobAddress;
     private Double lat;
     private Double lng;
-    private LocalDateTime createdAt;
-    private String status;
-    private List<String> tags;
+    private List<Long> interestIds; // JobPostTag와 연결할 Interest ID 리스트
 }

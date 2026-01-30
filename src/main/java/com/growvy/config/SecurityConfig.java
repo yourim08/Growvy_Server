@@ -34,6 +34,7 @@ public class SecurityConfig {
                                 "/webjars/**",
                                 "/swagger-ui.html",
                                 "/api/auth/**",
+                                "/api/posts/**",
                                 "/api/**"
                         ).permitAll().anyRequest().authenticated()
                 ).addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
