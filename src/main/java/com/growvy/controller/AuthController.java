@@ -27,6 +27,7 @@ public class AuthController {
 
         return ResponseEntity.ok(authService.login(firebaseToken));
     }
+
     @PostMapping("/signup/employer")
     public ResponseEntity<SignUpResponse> employerSignup(
             @RequestHeader("Authorization") String header,

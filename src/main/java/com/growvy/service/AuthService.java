@@ -99,16 +99,14 @@ public class AuthService {
         employerProfile.setCompanyName(req.getCompanyName());
         employerProfile.setBusinessAddress(req.getBusinessAddress());
 
-        // 위도, 경도 가져오기
         Map<String, Double> coords = geoService.getCoordinates(req.getBusinessAddress());
-        log.info("EmployerProfile에 넣는 좌표: lat={}, lng={}", coords.get("lat"), coords.get("lon"));
-
-        if (coords == null) {
+        if (coords == null || coords.get("lat") == null || coords.get("lng") == null) {
             throw new IllegalStateException("사업장 주소 좌표 변환 실패");
         }
 
         employerProfile.setLat(coords.get("lat"));
-        employerProfile.setLng(coords.get("lon"));
+        employerProfile.setLng(coords.get("lng"));
+        log.info("EmployerProfile 좌표 설정: lat={}, lng={}", coords.get("lat"), coords.get("lng"));
 
         employerProfileRepository.save(employerProfile);
 
@@ -157,14 +155,13 @@ public class AuthService {
 
         // 위도, 경도 가져오기
         Map<String, Double> coords = geoService.getCoordinates(req.getHomeAddress());
-
-        if (coords == null) {
-            throw new IllegalStateException("사업장 주소 좌표 변환 실패");
+        if (coords == null || coords.get("lat") == null || coords.get("lng") == null) {
+            throw new IllegalStateException("주소 좌표 변환 실패");
         }
-        log.info("JobSeekerProfile에 넣는 좌표: lat={}, lng={}", coords.get("lat"), coords.get("lon"));
 
         jobSeekerProfile.setLat(coords.get("lat"));
-        jobSeekerProfile.setLng(coords.get("lon"));
+        jobSeekerProfile.setLng(coords.get("lng"));
+        log.info("JobSeekerProfile 좌표 설정: lat={}, lng={}", coords.get("lat"), coords.get("lng"));
 
         jobSeekerProfileRepository.save(jobSeekerProfile);
 

@@ -50,10 +50,10 @@ public class GeoService {
                 if (!results.isEmpty()) {
                     Map<String, Object> first = results.get(0);
                     double lat = Double.parseDouble(first.get("lat").toString());
-                    double lon = Double.parseDouble(first.get("lon").toString());
+                    double lng = Double.parseDouble(first.get("lon").toString());
 
-                    log.info("좌표 추출 성공: lat={}, lon={}", lat, lon);
-                    return Map.of("lat", lat, "lon", lon);
+                    log.info("좌표 추출 성공: lat={}, lng={}", lat, lng);
+                    return Map.of("lat", lat, "lng", lng);
                 } else {
                     log.warn("검색 결과가 비어있습니다. (주소: {})", address);
                 }

@@ -9,20 +9,24 @@ import com.growvy.repository.JobPostRepository;
 import com.growvy.repository.JobPostTagRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class JobPostService {
 
     private final ApplicationRepository applicationRepository;
     private final JobPostRepository jobPostRepository;
     private final JobPostTagRepository jobPostTagRepository;
     private final InterestRepository interestRepository;
+    private final GeoService geoService;
 
     // 내가 신청한 일 목록 (조회 API)
     public List<JobPostResponse> getAcceptedPosts(JobSeekerProfile jobSeeker, LocalDate start, LocalDate end) {
@@ -52,30 +56,37 @@ public class JobPostService {
 
     // 글 등록 API
     @Transactional
-    public JobPostResponse createJobPost(User user, JobPostRequest request) {
+    public JobPostResponse createJobPost(User user, JobPostRequest req) {
 
         // 1. 게시글 생성
         JobPost jobPost = new JobPost();
         jobPost.setUser(user);
-        jobPost.setTitle(request.getTitle());
-        jobPost.setCompanyName(request.getCompanyName());
-        jobPost.setDescription(request.getDescription());
-        jobPost.setCount(request.getCount());
-        jobPost.setStartDate(request.getStartDate());
-        jobPost.setEndDate(request.getEndDate());
-        jobPost.setStartTime(request.getStartTime());
-        jobPost.setEndTime(request.getEndTime());
-        jobPost.setHourlyWage(request.getHourlyWage());
-        jobPost.setJobAddress(request.getJobAddress());
-        jobPost.setLat(request.getLat());
-        jobPost.setLng(request.getLng());
+        jobPost.setTitle(req.getTitle());
+        jobPost.setCompanyName(req.getCompanyName());
+        jobPost.setDescription(req.getDescription());
+        jobPost.setCount(req.getCount());
+        jobPost.setStartDate(req.getStartDate());
+        jobPost.setEndDate(req.getEndDate());
+        jobPost.setStartTime(req.getStartTime());
+        jobPost.setEndTime(req.getEndTime());
+        jobPost.setHourlyWage(req.getHourlyWage());
+        jobPost.setJobAddress(req.getJobAddress());
         jobPost.setStatus(JobPost.Status.OPEN);
+
+        // 위도, 경도 가져오기
+        Map<String, Double> coords = geoService.getCoordinates(req.getJobAddress());
+        if (coords == null || coords.get("lat") == null || coords.get("lng") == null) {
+            throw new IllegalStateException("사업장 주소 좌표 변환 실패");
+        }
+        log.info("JobPost에 넣는 좌표: lat={}, lng={}", coords.get("lat"), coords.get("lng"));
+        jobPost.setLat(coords.get("lat"));
+        jobPost.setLng(coords.get("lng"));
 
         // save 한 번만, Lambda에서 safe
         JobPost savedJobPost = jobPostRepository.save(jobPost);
 
         // 2. 태그 연결
-        List<JobPostTag> tags = request.getInterestIds().stream()
+        List<JobPostTag> tags = req.getInterestIds().stream()
                 .map(interestId -> {
                     Interest interest = interestRepository.findById(interestId)
                             .orElseThrow(() -> new IllegalArgumentException("Interest가 존재하지 않음: " + interestId));
@@ -91,20 +102,20 @@ public class JobPostService {
         savedJobPost.setJobPostTags(tags);
 
         // 3. DTO 반환
-        JobPostResponse response = new JobPostResponse();
-        response.setId(savedJobPost.getId());
-        response.setTitle(savedJobPost.getTitle());
-        response.setCompanyName(savedJobPost.getCompanyName());
-        response.setDescription(savedJobPost.getDescription());
-        response.setCount(savedJobPost.getCount());
-        response.setStartDate(savedJobPost.getStartDate());
-        response.setEndDate(savedJobPost.getEndDate());
-        response.setStartTime(savedJobPost.getStartTime());
-        response.setEndTime(savedJobPost.getEndTime());
-        response.setHourlyWage(savedJobPost.getHourlyWage());
-        response.setJobAddress(savedJobPost.getJobAddress());
-        response.setTags(tags.stream().map(tag -> tag.getInterest().getName()).toList());
+        JobPostResponse res = new JobPostResponse();
+        res.setId(savedJobPost.getId());
+        res.setTitle(savedJobPost.getTitle());
+        res.setCompanyName(savedJobPost.getCompanyName());
+        res.setDescription(savedJobPost.getDescription());
+        res.setCount(savedJobPost.getCount());
+        res.setStartDate(savedJobPost.getStartDate());
+        res.setEndDate(savedJobPost.getEndDate());
+        res.setStartTime(savedJobPost.getStartTime());
+        res.setEndTime(savedJobPost.getEndTime());
+        res.setHourlyWage(savedJobPost.getHourlyWage());
+        res.setJobAddress(savedJobPost.getJobAddress());
+        res.setTags(tags.stream().map(tag -> tag.getInterest().getName()).toList());
 
-        return response;
+        return res;
     }
 }

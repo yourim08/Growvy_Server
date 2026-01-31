@@ -19,7 +19,5 @@ public class JobPostRequest {
     private String endTime;
     private int hourlyWage;
     private String jobAddress;
-    private Double lat;
-    private Double lng;
     private List<Long> interestIds; // JobPostTag와 연결할 Interest ID 리스트
 }
