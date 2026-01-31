@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -84,7 +85,8 @@ public class JobPostService {
 
         JobPost savedJobPost = jobPostRepository.save(jobPost);
 
-        // 2. 태그 연결
+// 2. 태그 연결
+        List<JobPostTag> savedTags = new ArrayList<>();
         if (req.getInterestIds() != null && !req.getInterestIds().isEmpty()) {
             for (Long interestId : req.getInterestIds()) {
                 Interest interest = interestRepository.findById(interestId)
@@ -96,10 +98,11 @@ public class JobPostService {
                 tag.setId(new JobPostTagId(savedJobPost.getId(), interestId));
 
                 jobPostTagRepository.save(tag);
+                savedTags.add(tag);  // 리스트에 저장
             }
         }
 
-        // 3. DTO 반환
+// 3. DTO 반환
         JobPostResponse res = new JobPostResponse();
         res.setId(savedJobPost.getId());
         res.setTitle(savedJobPost.getTitle());
@@ -116,7 +119,7 @@ public class JobPostService {
         res.setLng(savedJobPost.getLng());
         res.setStatus(savedJobPost.getStatus().name());
         res.setCreatedAt(savedJobPost.getCreatedAt());
-        res.setTags(savedJobPost.getJobPostTags().stream()
+        res.setTags(savedTags.stream()
                 .map(jpt -> jpt.getInterest().getName())
                 .toList());
         res.setSuccess(true);
