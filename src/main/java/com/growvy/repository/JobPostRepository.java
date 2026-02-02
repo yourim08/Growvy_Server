@@ -23,4 +23,17 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
 
     // 전체 인기순
     List<JobPost> findAllByOrderByViewDesc();
+
+    // 최신순, OPEN인 것만
+    List<JobPost> findAllByStatusOrderByCreatedAtDesc(JobPost.Status status);
+
+    // 인기순, OPEN인 것만
+    List<JobPost> findAllByStatusOrderByViewDesc(JobPost.Status status);
+
+    // 내가 신청한 게시물 제외, 최신순, OPEN인 것만
+    List<JobPost> findAllByIdNotInAndStatusOrderByCreatedAtDesc(List<Long> ids, JobPost.Status status);
+
+    // 내가 신청한 게시물 제외, 인기순, OPEN인 것만
+    List<JobPost> findAllByIdNotInAndStatusOrderByViewDesc(List<Long> ids, JobPost.Status status);
+
 }

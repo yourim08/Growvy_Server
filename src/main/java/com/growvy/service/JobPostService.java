@@ -39,10 +39,11 @@ public class JobPostService {
         // 2. 모든 게시물 중 내가 신청하지 않은 것, 최신순 정렬
         List<JobPost> posts;
         if (appliedJobIds.isEmpty()) {
-            posts = jobPostRepository.findAllByOrderByCreatedAtDesc();
+            posts = jobPostRepository.findAllByStatusOrderByCreatedAtDesc(JobPost.Status.OPEN);
         } else {
-            posts = jobPostRepository.findAllByIdNotInOrderByCreatedAtDesc(appliedJobIds);
+            posts = jobPostRepository.findAllByIdNotInAndStatusOrderByCreatedAtDesc(appliedJobIds, JobPost.Status.OPEN);
         }
+
         // 3. DTO 변환
         return posts.stream().map(jp -> {
             JobPostResponse res = new JobPostResponse();
@@ -81,9 +82,9 @@ public class JobPostService {
         // 2. 인기순 조회
         List<JobPost> posts;
         if (appliedJobIds.isEmpty()) {
-            posts = jobPostRepository.findAllByOrderByViewDesc();
+            posts = jobPostRepository.findAllByStatusOrderByViewDesc(JobPost.Status.OPEN);
         } else {
-            posts = jobPostRepository.findAllByIdNotInOrderByViewDesc(appliedJobIds);
+            posts = jobPostRepository.findAllByIdNotInAndStatusOrderByViewDesc(appliedJobIds, JobPost.Status.OPEN);
         }
 
         // 3. DTO 변환

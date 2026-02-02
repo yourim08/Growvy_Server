@@ -27,5 +27,4 @@ public class JobPostResponse {
     private String status;
     private List<String> tags;
     private List<String> imageUrls;
-    private boolean success;
 }
