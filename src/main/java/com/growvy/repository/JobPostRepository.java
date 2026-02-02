@@ -38,8 +38,8 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
     List<JobPost> findAllByIdNotInAndStatusOrderByViewDesc(List<Long> ids, JobPost.Status status);
 
     // DONE 제외 공고 조회
-    List<JobPost> findByEmployerAndStatusNot(EmployerProfile employer, JobPost.Status status);
+    List<JobPost> findByUserAndStatusNot(User user, JobPost.Status status);
 
     // DONE 공고만 조회 (Employer)
-    List<JobPost> findByEmployerAndStatus(EmployerProfile employer, JobPost.Status status);
+    List<JobPost> findByUserAndStatus(User user, JobPost.Status status);
 }

@@ -22,8 +22,8 @@ public class EmployerService {
 
     // Employer가 올린 공고 조회 (DONE 제외)
     public List<JobPostResponse> getMyPosts(User employerUser) {
-        List<JobPost> posts = jobPostRepository.findByEmployerAndStatusNot(
-                employerUser.getEmployerProfile(), JobPost.Status.DONE
+        List<JobPost> posts = jobPostRepository.findByUserAndStatusNot(
+                employerUser.getEmployerProfile().getUser(), JobPost.Status.DONE
         );
 
         // DTO 변환 + 최근 생성 순 정렬
@@ -45,8 +45,8 @@ public class EmployerService {
 
     // Employer가 올린 DONE 공고 조회 (끝난 일 기준)
     public List<JobPostResponse> getMyDonePosts(User employerUser) {
-        List<JobPost> posts = jobPostRepository.findByEmployerAndStatus(
-                employerUser.getEmployerProfile(), JobPost.Status.DONE
+        List<JobPost> posts = jobPostRepository.findByUserAndStatus(
+                employerUser.getEmployerProfile().getUser(), JobPost.Status.DONE
         );
 
         // DTO 변환 + endDate 기준 내림차순 정렬
