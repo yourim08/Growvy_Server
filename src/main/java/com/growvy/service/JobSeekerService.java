@@ -22,6 +22,7 @@ public class JobSeekerService {
     private final ApplicationRepository applicationRepository;
     private final JobPostRepository jobPostRepository;
 
+    // 일 신청 API
     @Transactional
     public void applyJob(JobSeekerProfile seeker, Long jobPostId) {
         // 1. 신청할 게시물 조회
@@ -50,6 +51,44 @@ public class JobSeekerService {
         long appliedCount = applicationRepository.countByJobPost(jobPost);
         if (appliedCount >= jobPost.getCount()) {
             jobPost.setStatus(JobPost.Status.CLOSED);
+            jobPostRepository.save(jobPost);
+        }
+    }
+
+    // 신청한 일 목록 조회 API
+    public List<JobPostResponse> getMyAppliedJobs(JobSeekerProfile jobSeeker) {
+        List<Application> applications = applicationRepository.findByJobSeeker(jobSeeker);
+
+        return applications.stream()
+                .map(app -> {
+                    JobPostResponse res = new JobPostResponse();
+                    res.setId(app.getJobPost().getId());
+                    res.setTitle(app.getJobPost().getTitle());
+                    res.setStartDate(app.getJobPost().getStartDate());
+                    res.setEndDate(app.getJobPost().getEndDate());
+                    res.setStartTime(app.getJobPost().getStartTime());
+                    res.setEndTime(app.getJobPost().getEndTime());
+                    res.setStatus(app.getStatus().name()); // 신청 상태 표시
+                    return res;
+                })
+                .toList();
+    }
+
+    // 신청한 일 취소 API
+    @Transactional
+    public void cancelApplication(JobSeekerProfile seeker, Long jobPostId) {
+        JobPost jobPost = jobPostRepository.findById(jobPostId)
+                .orElseThrow(() -> new IllegalArgumentException("공고를 찾을 수 없습니다."));
+
+        Application app = applicationRepository.findByJobSeekerAndJobPost(seeker, jobPost)
+                .orElseThrow(() -> new IllegalStateException("신청 내역이 없습니다."));
+
+        applicationRepository.delete(app);
+
+        // 신청자 수 체크 후, CLOSED였다면 빈 자리 생기면 OPEN으로 변경
+        long appliedCount = applicationRepository.countByJobPost(jobPost);
+        if (jobPost.getStatus() == JobPost.Status.CLOSED && appliedCount < jobPost.getCount()) {
+            jobPost.setStatus(JobPost.Status.OPEN);
             jobPostRepository.save(jobPost);
         }
     }
