@@ -55,11 +55,13 @@ public class JobSeekerService {
         }
     }
 
-    // 신청한 일 목록 조회 API
+    // 신청한 일 조회 - DONE 상태 빼고
     public List<JobPostResponse> getMyAppliedJobs(JobSeekerProfile jobSeeker) {
         List<Application> applications = applicationRepository.findByJobSeeker(jobSeeker);
 
         return applications.stream()
+                .filter(app -> app.getJobPost().getStatus() != JobPost.Status.DONE) // DONE 제외
+                .sorted((a, b) -> b.getAppliedAt().compareTo(a.getAppliedAt())) // 최근 신청이 위
                 .map(app -> {
                     JobPostResponse res = new JobPostResponse();
                     res.setId(app.getJobPost().getId());
@@ -68,7 +70,30 @@ public class JobSeekerService {
                     res.setEndDate(app.getJobPost().getEndDate());
                     res.setStartTime(app.getJobPost().getStartTime());
                     res.setEndTime(app.getJobPost().getEndTime());
-                    res.setStatus(app.getStatus().name()); // 신청 상태 표시
+                    res.setStatus(app.getStatus().name());
+                    return res;
+                })
+                .toList();
+    }
+
+
+    // 신청한 일 조회 - DONE 상태만
+    @Transactional(readOnly = true)
+    public List<JobPostResponse> getMyDoneJobs(JobSeekerProfile jobSeeker) {
+        List<Application> applications = applicationRepository.findByJobSeeker(jobSeeker);
+
+        return applications.stream()
+                .filter(app -> app.getJobPost().getStatus() == JobPost.Status.DONE)
+                .sorted((a, b) -> b.getJobPost().getEndDate().compareTo(a.getJobPost().getEndDate()))
+                .map(app -> {
+                    JobPostResponse res = new JobPostResponse();
+                    res.setId(app.getJobPost().getId());
+                    res.setTitle(app.getJobPost().getTitle());
+                    res.setStartDate(app.getJobPost().getStartDate());
+                    res.setEndDate(app.getJobPost().getEndDate());
+                    res.setStartTime(app.getJobPost().getStartTime());
+                    res.setEndTime(app.getJobPost().getEndTime());
+                    res.setStatus(app.getStatus().name());
                     return res;
                 })
                 .toList();
