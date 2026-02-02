@@ -7,7 +7,7 @@ import com.growvy.repository.ApplicationRepository;
 import com.growvy.repository.InterestRepository;
 import com.growvy.repository.JobPostRepository;
 import com.growvy.repository.JobPostTagRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,7 +32,7 @@ public class JobPostService {
     // 모든 일 최신순 조회 API (신청한 것 제외)
     public List<JobPostResponse> getAllPostsExcludingMyApplications(JobSeekerProfile jobSeeker) {
 
-        // 1. 내가 신청한 게시물 ID 가져오기
+        // 1. 내가 신청한 게시물 ID
         List<Long> appliedJobIds = applicationRepository.findByJobSeeker(jobSeeker)
                 .stream()
                 .map(app -> app.getJobPost().getId())
@@ -66,9 +66,95 @@ public class JobPostService {
             res.setTags(jp.getJobPostTags().stream()
                     .map(tag -> tag.getInterest().getName())
                     .toList());
-            res.setSuccess(true);
             return res;
         }).toList();
+    }
+
+
+    // 인기순 정렬 API (조회수 기반)
+    public List<JobPostResponse> getAllPostsByPopularity(JobSeekerProfile jobSeeker) {
+
+        // 1. 내가 신청한 게시물 ID
+        List<Long> appliedJobIds = applicationRepository.findByJobSeeker(jobSeeker)
+                .stream()
+                .map(app -> app.getJobPost().getId())
+                .toList();
+
+        // 2. 인기순 조회
+        List<JobPost> posts;
+        if (appliedJobIds.isEmpty()) {
+            posts = jobPostRepository.findAllByOrderByViewDesc();
+        } else {
+            posts = jobPostRepository.findAllByIdNotInOrderByViewDesc(appliedJobIds);
+        }
+
+        // 3. DTO 변환
+        return posts.stream().map(jp -> {
+            JobPostResponse res = new JobPostResponse();
+            res.setId(jp.getId());
+            res.setTitle(jp.getTitle());
+            res.setCompanyName(jp.getCompanyName());
+            res.setDescription(jp.getDescription());
+            res.setCount(jp.getCount());
+            res.setStartDate(jp.getStartDate());
+            res.setEndDate(jp.getEndDate());
+            res.setStartTime(jp.getStartTime());
+            res.setEndTime(jp.getEndTime());
+            res.setHourlyWage(jp.getHourlyWage());
+            res.setJobAddress(jp.getJobAddress());
+            res.setLat(jp.getLat());
+            res.setLng(jp.getLng());
+            res.setCreatedAt(jp.getCreatedAt());
+            res.setStatus(jp.getStatus().name());
+            res.setTags(
+                    jp.getJobPostTags().stream()
+                            .map(tag -> tag.getInterest().getName())
+                            .toList()
+            );
+            return res;
+        }).toList();
+    }
+
+
+    // 상세 조회 API
+    @Transactional
+    public JobPostResponse getPostDetail(Long postId) {
+
+        JobPost jobPost = jobPostRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("공고를 찾을 수 없습니다."));
+
+        // 조회수 증가
+        Long view = jobPost.getView();
+        jobPost.setView(view == null ? 1L : view + 1);
+
+        JobPostResponse res = new JobPostResponse();
+        res.setId(jobPost.getId());
+        res.setTitle(jobPost.getTitle());
+        res.setCompanyName(jobPost.getCompanyName());
+        res.setDescription(jobPost.getDescription());
+        res.setCount(jobPost.getCount());
+        res.setStartDate(jobPost.getStartDate());
+        res.setEndDate(jobPost.getEndDate());
+        res.setStartTime(jobPost.getStartTime());
+        res.setEndTime(jobPost.getEndTime());
+        res.setHourlyWage(jobPost.getHourlyWage());
+        res.setJobAddress(jobPost.getJobAddress());
+        res.setLat(jobPost.getLat());
+        res.setLng(jobPost.getLng());
+        res.setCreatedAt(jobPost.getCreatedAt());
+        res.setStatus(jobPost.getStatus().name());
+        res.setTags(
+                jobPost.getJobPostTags().stream()
+                        .map(tag -> tag.getInterest().getName())
+                        .toList()
+        );
+        res.setImageUrls(
+                jobPost.getJobPostImages().stream()
+                        .sorted((a, b) -> a.getSortOrder().compareTo(b.getSortOrder()))
+                        .map(JobPostImage::getImageUrl)
+                        .toList()
+        );
+        return res;
     }
 
 
@@ -140,7 +226,6 @@ public class JobPostService {
                 .map(jpt -> jpt.getInterest().getName())
                 .toList());
         res.setSuccess(true);
-
         return res;
     }
 }

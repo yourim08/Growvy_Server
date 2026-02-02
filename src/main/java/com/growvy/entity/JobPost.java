@@ -92,6 +92,9 @@ public class JobPost {
     @OneToMany(mappedBy = "jobPost", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<JobPostTag> jobPostTags = new ArrayList<>();
 
+    @OneToMany(mappedBy = "jobPost", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sortOrder ASC")  // sortOrder 기준으로 정렬
+    private List<JobPostImage> jobPostImages = new ArrayList<>();
 
     public enum Status {
         OPEN, CLOSED, DONE

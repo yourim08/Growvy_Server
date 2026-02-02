@@ -43,6 +43,36 @@ public class JobPostController {
         return jobPostService.getAllPostsExcludingMyApplications(jobSeeker);
     }
 
+    // 모든 일 인기순 조회 API (신청한 것 제외)
+    @GetMapping("/all/popular")
+    public List<JobPostResponse> getAllPostsByPopularity(
+            @RequestHeader("Authorization") String header
+    ) {
+        String jwt = header.replace("Bearer ", "").trim();
+        String firebaseUid = jwtProvider.getFirebaseUid(jwt);
+
+        User user = userRepository.findByFirebaseUid(firebaseUid)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        JobSeekerProfile jobSeeker = user.getJobSeekerProfile();
+
+        return jobPostService.getAllPostsByPopularity(jobSeeker);
+    }
+
+    // 상세 조회 API
+    @GetMapping("/{postId}")
+    public JobPostResponse getPostDetail(
+            @RequestHeader("Authorization") String header,
+            @PathVariable Long postId
+    ) {
+        // 토큰 검증만
+        String jwt = header.replace("Bearer ", "").trim();
+        jwtProvider.getFirebaseUid(jwt);
+
+        return jobPostService.getPostDetail(postId);
+    }
+
+
     // 구인자 공고 등록 API
     @PostMapping("/upload")
     public ResponseEntity<JobPostResponse> createPost(

@@ -26,5 +26,6 @@ public class JobPostResponse {
     private LocalDateTime createdAt;
     private String status;
     private List<String> tags;
+    private List<String> imageUrls;
     private boolean success;
 }

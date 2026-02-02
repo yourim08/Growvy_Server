@@ -20,4 +20,5 @@ public class JobPostRequest {
     private int hourlyWage;
     private String jobAddress;
     private List<Long> interestIds; // JobPostTag와 연결할 Interest ID 리스트
+    private List<String> imageUrls; // img url 리스트 (최대 4개)
 }
