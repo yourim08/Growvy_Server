@@ -48,6 +48,9 @@ public class User {
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
     private EmployerProfile employerProfile;
 
+    @Column(name = "average_rating", nullable = false)
+    private Double averageRating = 0.0;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

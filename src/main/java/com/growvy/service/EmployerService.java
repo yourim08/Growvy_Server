@@ -1,5 +1,6 @@
 package com.growvy.service;
 import com.growvy.dto.req.JobPostRequest;
+import com.growvy.dto.res.ApplicationResponse;
 import com.growvy.dto.res.JobPostResponse;
 import com.growvy.entity.*;
 import com.growvy.repository.*;
@@ -19,6 +20,7 @@ public class EmployerService {
 
     private final JobPostRepository jobPostRepository;
     private final UserRepository userRepository;
+    private final ApplicationRepository applicationRepository;
 
     // Employer가 올린 공고 조회 (DONE 제외)
     public List<JobPostResponse> getMyPosts(User employerUser) {
@@ -71,6 +73,31 @@ public class EmployerService {
                     res.setStartTime(post.getStartTime());
                     res.setEndTime(post.getEndTime());
                     res.setStatus(post.getStatus().name());
+                    return res;
+                })
+                .toList();
+    }
+
+    // 신청한 사람 조회
+    @Transactional(readOnly = true)
+    public List<ApplicationResponse> getApplicantsForJobPost(Long jobPostId) {
+        JobPost jobPost = jobPostRepository.findById(jobPostId)
+                .orElseThrow(() -> new IllegalArgumentException("공고를 찾을 수 없습니다."));
+
+        List<Application> applications = applicationRepository.findByJobPost(jobPost);
+
+        return applications.stream()
+                .sorted((a, b) -> b.getAppliedAt().compareTo(a.getAppliedAt())) // 최근 신청 위
+                .map(app -> {
+                    ApplicationResponse res = new ApplicationResponse();
+                    res.setApplicationId(app.getId());
+                    res.setStatus(app.getStatus().name());
+
+                    User user = app.getJobSeeker().getUser();
+                    res.setName(user.getName());
+                    res.setGender(user.getGender());
+                    res.setAverageRating(user.getAverageRating());
+
                     return res;
                 })
                 .toList();
