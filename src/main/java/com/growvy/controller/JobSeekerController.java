@@ -76,9 +76,7 @@ public class JobSeekerController {
         return ResponseEntity.ok(res);
     }
 
-    // 신청한 일 취소 API
-    @Operation(summary = "JobSeeker-신청한 일 취소", description = "내가 신청한 일 취소")
-    @PostMapping("/cancel")
+    @DeleteMapping("/cancel")
     public ResponseEntity<String> cancelJob(
             @RequestHeader("Authorization") String header,
             @RequestBody Map<String, Long> body
@@ -96,5 +94,4 @@ public class JobSeekerController {
 
         return ResponseEntity.ok("신청 취소 완료");
     }
-
 }
