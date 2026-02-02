@@ -96,4 +96,22 @@ public class JobPostController {
         JobPostResponse res = jobPostService.createJobPost(user, request);
         return ResponseEntity.ok(res);
     }
+
+    @Operation(summary = "JobSeeker-특정 기간 공고 조회 API", description = "today, week, calender 공고 조회")
+    // 내가 신청한 일 중에 특정기간 조회
+    @GetMapping("my/range")
+    public List<JobPostResponse> getMyAcceptedClosedJobs(
+            @RequestHeader("Authorization") String header,
+            @RequestParam String startDate,
+            @RequestParam String endDate
+    ) {
+        String jwt = header.replace("Bearer ", "").trim();
+        String firebaseUid = jwtProvider.getFirebaseUid(jwt);
+
+        User user = userRepository.findByFirebaseUid(firebaseUid)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        JobSeekerProfile jobSeeker = user.getJobSeekerProfile();
+
+        return jobPostService.getMyAcceptedClosedJobs(jobSeeker, startDate, endDate);
+    }
 }

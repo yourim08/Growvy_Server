@@ -23,20 +23,22 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
 
     // 4. ACCEPTED 상태인 신청만, 기간 필터링 + 태그 join fetch
     @Query("""
-        SELECT a FROM Application a
-        JOIN FETCH a.jobPost jp
-        LEFT JOIN FETCH jp.jobPostTags jpt
-        LEFT JOIN FETCH jpt.interest i
-        WHERE a.jobSeeker = :jobSeeker
-          AND a.status = 'ACCEPTED'
-          AND jp.startDate >= :start
-          AND jp.endDate <= :end
-    """)
-    List<Application> findAcceptedApplicationsWithTags(
+    SELECT a FROM Application a
+    JOIN FETCH a.jobPost jp
+    LEFT JOIN FETCH jp.jobPostTags jpt
+    LEFT JOIN FETCH jpt.interest i
+    WHERE a.jobSeeker = :jobSeeker
+      AND a.status = 'ACCEPTED'
+      AND jp.status = 'CLOSED'
+      AND jp.startDate >= :start
+      AND jp.endDate <= :end
+""")
+    List<Application> findAcceptedClosedApplicationsWithTags(
             @Param("jobSeeker") JobSeekerProfile jobSeeker,
             @Param("start") LocalDate start,
             @Param("end") LocalDate end
     );
+
 
     // 필요 시 특정 구직자의 특정 상태 신청 리스트 조회
     List<Application> findByJobSeekerAndStatus(JobSeekerProfile jobSeeker, String status);

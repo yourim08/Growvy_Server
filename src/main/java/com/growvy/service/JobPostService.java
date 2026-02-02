@@ -242,4 +242,29 @@ public class JobPostService {
                 .toList());
         return res;
     }
+
+    // 신청한 일 중에 특정 기간 조회
+    public List<JobPostResponse> getMyAcceptedClosedJobs(JobSeekerProfile jobSeeker, String start, String end) {
+        LocalDate startDate = LocalDate.parse(start);
+        LocalDate endDate = LocalDate.parse(end);
+
+        List<Application> apps = applicationRepository.findAcceptedClosedApplicationsWithTags(
+                jobSeeker, startDate, endDate
+        );
+
+        // DTO 변환: 필요한 정보만
+        return apps.stream()
+                .map(app -> {
+                    JobPost jp = app.getJobPost();
+                    JobPostResponse res = new JobPostResponse();
+                    res.setId(jp.getId());
+                    res.setTitle(jp.getTitle());
+                    res.setStartDate(jp.getStartDate());
+                    res.setEndDate(jp.getEndDate());
+                    res.setStartTime(jp.getStartTime());
+                    res.setEndTime(jp.getEndTime());
+                    return res;
+                })
+                .toList();
+    }
 }
