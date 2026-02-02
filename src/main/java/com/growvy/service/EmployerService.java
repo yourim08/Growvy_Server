@@ -102,4 +102,36 @@ public class EmployerService {
                 })
                 .toList();
     }
+
+    @Transactional
+    public void acceptApplicants(Long jobPostId, List<Long> selectedApplicationIds, User employer) {
+        // 1. 공고 조회 및 소유자 체크
+        JobPost jobPost = jobPostRepository.findById(jobPostId)
+                .orElseThrow(() -> new IllegalArgumentException("공고를 찾을 수 없습니다."));
+        if (!jobPost.getUser().getId().equals(employer.getId())) {
+            throw new IllegalStateException("권한이 없습니다.");
+        }
+
+        // 2. 신청자 전체 조회
+        List<Application> allApplications = applicationRepository.findByJobPost(jobPost);
+
+        // 3. 선택 인원 수 검증
+        if (selectedApplicationIds.size() > jobPost.getCount()) {
+            throw new IllegalArgumentException("선택 인원이 공고 모집 인원을 초과합니다.");
+        }
+
+        // 4. 상태 업데이트
+        for (Application app : allApplications) {
+            if (selectedApplicationIds.contains(app.getId())) {
+                app.setStatus(Application.Status.ACCEPTED);
+            } else {
+                app.setStatus(Application.Status.CANCELED);
+            }
+        }
+        applicationRepository.saveAll(allApplications);
+
+        // 5. 공고 상태 CLOSED로
+        jobPost.setStatus(JobPost.Status.CLOSED);
+        jobPostRepository.save(jobPost);
+    }
 }

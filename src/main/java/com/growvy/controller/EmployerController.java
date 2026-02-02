@@ -73,4 +73,21 @@ public class EmployerController {
         List<ApplicationResponse> res = employerService.getApplicantsForJobPost(jobPostId);
         return ResponseEntity.ok(res);
     }
+
+    @Operation(summary = "Employer-신청자 수락", description = "공고에 선택된 지원자 수락 및 공고 CLOSED 처리")
+    @PostMapping("/posts/{jobPostId}/accept")
+    public ResponseEntity<String> acceptApplicants(
+            @RequestHeader("Authorization") String header,
+            @PathVariable Long jobPostId,
+            @RequestBody List<Long> selectedApplicationIds
+    ) {
+        String jwt = header.replace("Bearer ", "").trim();
+        String firebaseUid = jwtProvider.getFirebaseUid(jwt);
+
+        User user = userRepository.findByFirebaseUid(jwt)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        employerService.acceptApplicants(jobPostId, selectedApplicationIds, user);
+        return ResponseEntity.ok("선택된 지원자를 수락하고 공고를 CLOSED 처리했습니다.");
+    }
 }
