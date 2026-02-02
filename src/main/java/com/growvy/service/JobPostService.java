@@ -3,10 +3,7 @@ package com.growvy.service;
 import com.growvy.dto.req.JobPostRequest;
 import com.growvy.dto.res.JobPostResponse;
 import com.growvy.entity.*;
-import com.growvy.repository.ApplicationRepository;
-import com.growvy.repository.InterestRepository;
-import com.growvy.repository.JobPostRepository;
-import com.growvy.repository.JobPostTagRepository;
+import com.growvy.repository.*;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +25,7 @@ public class JobPostService {
     private final JobPostTagRepository jobPostTagRepository;
     private final InterestRepository interestRepository;
     private final GeoService geoService;
+    private final JobPostImageRepository jobPostImageRepository;
 
     // 모든 일 최신순 조회 API (신청한 것 제외)
     public List<JobPostResponse> getAllPostsExcludingMyApplications(JobSeekerProfile jobSeeker) {
@@ -158,7 +156,7 @@ public class JobPostService {
     }
 
 
-    // 글 등록 API
+    // 글 등록 API (이미지 포함)
     @Transactional
     public JobPostResponse createJobPost(User user, JobPostRequest req) {
 
@@ -182,7 +180,6 @@ public class JobPostService {
         if (coords == null || coords.get("lat") == null || coords.get("lng") == null) {
             throw new IllegalStateException("사업장 주소 좌표 변환 실패");
         }
-        log.info("JobPost에 넣는 좌표: lat={}, lng={}", coords.get("lat"), coords.get("lng"));
         jobPost.setLat(coords.get("lat"));
         jobPost.setLng(coords.get("lng"));
 
@@ -201,11 +198,25 @@ public class JobPostService {
                 tag.setId(new JobPostTagId(savedJobPost.getId(), interestId));
 
                 jobPostTagRepository.save(tag);
-                savedTags.add(tag);  // 리스트에 저장
+                savedTags.add(tag);
             }
         }
 
-        // 3. DTO 반환
+        // 3. 이미지 연결
+        List<JobPostImage> savedImages = new ArrayList<>();
+        if (req.getImageUrls() != null && !req.getImageUrls().isEmpty()) {
+            for (int i = 0; i < req.getImageUrls().size(); i++) {
+                String url = req.getImageUrls().get(i);
+                JobPostImage img = new JobPostImage();
+                img.setJobPost(savedJobPost);
+                img.setImageUrl(url);
+                img.setSortOrder(i + 1);
+                jobPostImageRepository.save(img);
+                savedImages.add(img);
+            }
+        }
+
+        // 4. DTO 반환
         JobPostResponse res = new JobPostResponse();
         res.setId(savedJobPost.getId());
         res.setTitle(savedJobPost.getTitle());
@@ -225,7 +236,9 @@ public class JobPostService {
         res.setTags(savedTags.stream()
                 .map(jpt -> jpt.getInterest().getName())
                 .toList());
-        res.setSuccess(true);
+        res.setImageUrls(savedImages.stream()
+                .map(JobPostImage::getImageUrl)
+                .toList());
         return res;
     }
 }
