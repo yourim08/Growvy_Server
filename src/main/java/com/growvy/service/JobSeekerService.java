@@ -77,14 +77,24 @@ public class JobSeekerService {
     }
 
 
-    // 신청한 일 조회 - DONE 상태만
+    // 신청한 일 조회 - DONE 상태만 + works/volunteer 분기
     @Transactional(readOnly = true)
-    public List<JobPostResponse> getMyDoneJobs(JobSeekerProfile jobSeeker) {
-        List<Application> applications = applicationRepository.findByJobSeeker(jobSeeker);
+    public List<JobPostResponse> getMyDoneJobs(JobSeekerProfile jobSeeker, String type) {
+        List<Application> applications = applicationRepository.findByJobSeeker(jobSeeker).stream()
+                .filter(app -> app.getJobPost().getStatus() == JobPost.Status.DONE)
+                .filter(app -> {
+                    if ("works".equalsIgnoreCase(type)) {
+                        return app.getJobPost().getHourlyWage() != 0;
+                    } else if ("volunteer".equalsIgnoreCase(type)) {
+                        return app.getJobPost().getHourlyWage() == 0;
+                    } else {
+                        return true; // type 없으면 모두 포함
+                    }
+                })
+                .sorted((a, b) -> b.getJobPost().getEndDate().compareTo(a.getJobPost().getEndDate()))
+                .toList();
 
         return applications.stream()
-                .filter(app -> app.getJobPost().getStatus() == JobPost.Status.DONE)
-                .sorted((a, b) -> b.getJobPost().getEndDate().compareTo(a.getJobPost().getEndDate()))
                 .map(app -> {
                     JobPostResponse res = new JobPostResponse();
                     res.setId(app.getJobPost().getId());

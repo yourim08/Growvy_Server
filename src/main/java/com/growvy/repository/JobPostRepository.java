@@ -42,4 +42,11 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
 
     // DONE 공고만 조회 (Employer)
     List<JobPost> findByUserAndStatus(User user, JobPost.Status status);
+
+    // DONE + works (hourly_wage != 0)
+    List<JobPost> findByUserAndStatusAndHourlyWageNot(User user, JobPost.Status status, int hourlyWage);
+
+    // DONE + volunteer (hourly_wage == 0)
+    List<JobPost> findByUserAndStatusAndHourlyWage(User user, JobPost.Status status, int hourlyWage);
+
 }

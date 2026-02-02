@@ -44,10 +44,20 @@ public class EmployerService {
     }
 
     // Employer가 올린 DONE 공고 조회 (끝난 일 기준)
-    public List<JobPostResponse> getMyDonePosts(User employerUser) {
-        List<JobPost> posts = jobPostRepository.findByUserAndStatus(
-                employerUser.getEmployerProfile().getUser(), JobPost.Status.DONE
-        );
+    public List<JobPostResponse> getMyDonePosts(User employerUser, String type) {
+        List<JobPost> posts;
+
+        if ("works".equalsIgnoreCase(type)) {
+            posts = jobPostRepository.findByUserAndStatusAndHourlyWageNot(
+                    employerUser.getEmployerProfile().getUser(), JobPost.Status.DONE, 0
+            );
+        } else if ("volunteer".equalsIgnoreCase(type)) {
+            posts = jobPostRepository.findByUserAndStatusAndHourlyWage(
+                    employerUser.getEmployerProfile().getUser(), JobPost.Status.DONE, 0
+            );
+        } else {
+            posts = jobPostRepository.findByUserAndStatus(employerUser.getEmployerProfile().getUser(), JobPost.Status.DONE);
+        }
 
         // DTO 변환 + endDate 기준 내림차순 정렬
         return posts.stream()

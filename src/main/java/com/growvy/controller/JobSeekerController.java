@@ -76,10 +76,11 @@ public class JobSeekerController {
         return ResponseEntity.ok(res);
     }
 
-    @Operation(summary = "JobSeeker-DONE 공고 조회", description = "신청한 일 중 DONE 상태인 일 조회")
+    @Operation(summary = "JobSeeker-DONE 공고 조회", description = "신청한 일 중 DONE 상태인 일 조회, type=works/volunteer 선택 가능")
     @GetMapping("/posts/done")
     public List<JobPostResponse> getMyDoneJobs(
-            @RequestHeader("Authorization") String header
+            @RequestHeader("Authorization") String header,
+            @RequestParam(value = "type", required = false) String type // works / volunteer / null
     ) {
         String jwt = header.replace("Bearer ", "").trim();
         String firebaseUid = jwtProvider.getFirebaseUid(jwt);
@@ -88,7 +89,7 @@ public class JobSeekerController {
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
         JobSeekerProfile jobSeeker = user.getJobSeekerProfile();
 
-        return jobSeekerService.getMyDoneJobs(jobSeeker);
+        return jobSeekerService.getMyDoneJobs(jobSeeker, type);
     }
 
     @Operation(summary = "JobSeeker-신청한 일 삭제", description = "특정 post 신청 취소")

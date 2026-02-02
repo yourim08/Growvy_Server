@@ -42,7 +42,8 @@ public class EmployerController {
     @Operation(summary = "Employer-DONE 공고 조회", description = "내가 올린 DONE 공고 조회, 끝난 일 기준 내림차순")
     @GetMapping("/posts/done")
     public ResponseEntity<List<JobPostResponse>> getMyDonePosts(
-            @RequestHeader("Authorization") String header
+            @RequestHeader("Authorization") String header,
+            @RequestParam(required = false) String type
     ) {
         String jwt = header.replace("Bearer ", "").trim();
         String firebaseUid = jwtProvider.getFirebaseUid(jwt);
@@ -50,7 +51,7 @@ public class EmployerController {
         User user = userRepository.findByFirebaseUid(firebaseUid)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        List<JobPostResponse> res = employerService.getMyDonePosts(user);
+        List<JobPostResponse> res = employerService.getMyDonePosts(user, type);
         return ResponseEntity.ok(res);
     }
 }
