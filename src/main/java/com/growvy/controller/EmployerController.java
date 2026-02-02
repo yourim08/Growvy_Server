@@ -70,15 +70,7 @@ public class EmployerController {
         User user = userRepository.findByFirebaseUid(firebaseUid)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        // 여기서 권한 체크: 이 공고가 user의 공고인지 확인 가능
-        JobPost jobPost = jobPostRepository.findById(jobPostId)
-                .orElseThrow(() -> new IllegalArgumentException("공고를 찾을 수 없습니다."));
-        if (!jobPost.getUser().getId().equals(user.getId())) {
-            throw new IllegalStateException("권한이 없습니다.");
-        }
-
         List<ApplicationResponse> res = employerService.getApplicantsForJobPost(jobPostId);
         return ResponseEntity.ok(res);
     }
-
 }
