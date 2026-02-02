@@ -1,6 +1,7 @@
 package com.growvy.repository;
 
 import com.growvy.entity.Application;
+import com.growvy.entity.JobPost;
 import com.growvy.entity.JobSeekerProfile;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -11,9 +12,16 @@ import java.util.List;
 
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
 
-    // 모든 일 조회
+    // 1. 구직자가 신청한 모든 신청 조회
     List<Application> findByJobSeeker(JobSeekerProfile jobSeeker);
 
+    // 2. 특정 구직자가 특정 게시물에 이미 신청했는지 확인
+    boolean existsByJobSeekerAndJobPost(JobSeekerProfile jobSeeker, JobPost jobPost);
+
+    // 3. 특정 게시물의 신청자 수
+    long countByJobPost(JobPost jobPost);
+
+    // 4. ACCEPTED 상태인 신청만, 기간 필터링 + 태그 join fetch
     @Query("""
         SELECT a FROM Application a
         JOIN FETCH a.jobPost jp
@@ -29,4 +37,10 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
             @Param("start") LocalDate start,
             @Param("end") LocalDate end
     );
+
+    // 필요 시 특정 구직자의 특정 상태 신청 리스트 조회
+    List<Application> findByJobSeekerAndStatus(JobSeekerProfile jobSeeker, String status);
+
+    // 필요 시 특정 게시물의 특정 상태 신청자 리스트 조회
+    List<Application> findByJobPostAndStatus(JobPost jobPost, String status);
 }

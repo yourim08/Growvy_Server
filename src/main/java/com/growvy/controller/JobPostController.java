@@ -10,6 +10,7 @@ import com.growvy.entity.User;
 import com.growvy.repository.UserRepository;
 import com.growvy.service.JobPostService;
 import com.growvy.util.JwtUtil;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +29,7 @@ public class JobPostController {
     private final UserRepository userRepository;
 
     // 모든 일 최신순 조회 API (신청한 것 제외)
+    @Operation(summary = "최신순 조회 API", description = "모든 post를 최신순으로 조회")
     @GetMapping("/all")
     public List<JobPostResponse> getAllPostsExcludingMyApplications(
             @RequestHeader("Authorization") String header
@@ -44,6 +46,7 @@ public class JobPostController {
     }
 
     // 모든 일 인기순 조회 API (신청한 것 제외)
+    @Operation(summary = "인기순 조회 API", description = "모든 post를 인기순으로 조회")
     @GetMapping("/all/popular")
     public List<JobPostResponse> getAllPostsByPopularity(
             @RequestHeader("Authorization") String header
@@ -60,6 +63,7 @@ public class JobPostController {
     }
 
     // 상세 조회 API
+    @Operation(summary = "상세 조회 API", description = "개별 post를 상세 조회")
     @GetMapping("/{postId}")
     public JobPostResponse getPostDetail(
             @RequestHeader("Authorization") String header,
@@ -74,6 +78,7 @@ public class JobPostController {
 
 
     // 구인자 공고 등록 API
+    @Operation(summary = "Employer-공고 등록 API", description = "공고 등록")
     @PostMapping("/upload")
     public ResponseEntity<JobPostResponse> createPost(
             @RequestHeader("Authorization") String header,
@@ -89,10 +94,6 @@ public class JobPostController {
 
         // 게시물 생성 및 DTO 반환
         JobPostResponse res = jobPostService.createJobPost(user, request);
-
-        // 성공 여부 세팅
-        res.setSuccess(true);
-
         return ResponseEntity.ok(res);
     }
 }
