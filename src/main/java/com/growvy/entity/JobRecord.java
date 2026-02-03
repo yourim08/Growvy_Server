@@ -12,7 +12,7 @@ import java.util.List;
 @Table(name = "records")
 @Getter
 @Setter
-public class Record {
+public class JobRecord {
 
     @Id
     @Column(name = "application_id")
@@ -45,5 +45,5 @@ public class Record {
     // Record ↔ RecordImage 1:N 관계
     @OneToMany(mappedBy = "record", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sortOrder ASC")
-    private List<RecordImage> recordImages = new ArrayList<>();
+    private List<JobRecordImage> recordImages = new ArrayList<>();
 }

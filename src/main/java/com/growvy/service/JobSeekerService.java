@@ -55,12 +55,12 @@ public class JobSeekerService {
         }
     }
 
-    // 신청한 일 조회 - DONE 상태 빼고
+    // 신청한 일 조회 - APPLIED 상태만
     public List<JobPostResponse> getMyAppliedJobs(JobSeekerProfile jobSeeker) {
         List<Application> applications = applicationRepository.findByJobSeeker(jobSeeker);
 
         return applications.stream()
-                .filter(app -> app.getJobPost().getStatus() != JobPost.Status.DONE) // DONE 제외
+                .filter(app -> app.getStatus() == Application.Status.APPLIED) // APPLIED만 조회
                 .sorted((a, b) -> b.getAppliedAt().compareTo(a.getAppliedAt())) // 최근 신청이 위
                 .map(app -> {
                     JobPostResponse res = new JobPostResponse();
@@ -77,7 +77,7 @@ public class JobSeekerService {
     }
 
 
-    // 신청한 일 조회 - DONE 상태만 + works/volunteer 분기
+    //  완료 일 조회 - DONE 상태만 + works/volunteer 분기
     @Transactional(readOnly = true)
     public List<JobPostResponse> getMyDoneJobs(JobSeekerProfile jobSeeker, String type) {
         List<Application> applications = applicationRepository.findByJobSeeker(jobSeeker).stream()
