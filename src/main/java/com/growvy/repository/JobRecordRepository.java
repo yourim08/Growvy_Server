@@ -8,7 +8,6 @@ import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 
 public interface JobRecordRepository extends JpaRepository<JobRecord, Long> {
-    // 필요시 findByApplicationId 등 추가 가능
     Optional<JobRecord> findByApplicationId(Long applicationId);
 
     @Query("""
@@ -22,7 +21,11 @@ public interface JobRecordRepository extends JpaRepository<JobRecord, Long> {
             @Param("jobPostId") Long jobPostId
     );
 
-    // 공유용 (JWT없음)
-    Optional<JobRecord> findByApplication_JobPost_Id(Long jobPostId);
+    @Query("""
+    SELECT r FROM JobRecord r
+    JOIN Application a ON a.id = r.applicationId
+    WHERE a.jobPost.id = :jobPostId
+""")
+    Optional<JobRecord> findByJobPostId(@Param("jobPostId") Long jobPostId);
 
 }

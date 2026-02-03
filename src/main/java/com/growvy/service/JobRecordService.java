@@ -108,8 +108,7 @@ public class JobRecordService {
 
     @Transactional(readOnly = true)
     public JobRecord getPublicRecord(Long jobPostId) {
-        JobRecord record = jobRecordRepository
-                .findByApplication_JobPost_Id(jobPostId)
+        JobRecord record = jobRecordRepository.findByJobPostId(jobPostId)
                 .orElseThrow(() -> new IllegalArgumentException("공유 가능한 기록이 존재하지 않습니다."));
 
         // 공유 조건 제한
