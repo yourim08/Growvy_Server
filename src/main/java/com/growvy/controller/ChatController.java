@@ -1,6 +1,5 @@
 package com.growvy.controller;
 
-import com.growvy.dto.req.ChatMessage;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;

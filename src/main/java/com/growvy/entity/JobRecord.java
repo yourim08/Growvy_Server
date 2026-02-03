@@ -1,5 +1,6 @@
 package com.growvy.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -45,5 +46,6 @@ public class JobRecord {
     // Record ↔ RecordImage 1:N 관계
     @OneToMany(mappedBy = "jobRecord", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sortOrder ASC")
+    @JsonManagedReference
     private List<JobRecordImage> recordImages = new ArrayList<>();
 }
