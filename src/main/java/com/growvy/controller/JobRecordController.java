@@ -82,15 +82,55 @@ public class JobRecordController {
 
         private final JobRecordService jobRecordService;
 
-        @Operation(summary = "공유용 기록 조회", description = "JWT 없이 접근 가능한 기록 조회 API")
+        @Operation(summary = "공유용 기록 조회 (OG 태그 포함 HTML)", description = "JWT 없이 접근 가능한 기록 조회 API")
         @GetMapping("/{jobPostId}")
-        public ResponseEntity<JobRecord> getPublicRecord(
+        public ResponseEntity<String> getPublicRecordHtml(
                 @PathVariable Long jobPostId
         ) {
+            // 기존 서비스 호출
             JobRecord record = jobRecordService.getPublicRecord(jobPostId);
-            return ResponseEntity.ok(record);
+
+            // OG 태그 포함 HTML 생성
+            String html = generateHtml(record);
+
+            // HTML 반환
+            return ResponseEntity.ok()
+                    .header("Content-Type", "text/html; charset=UTF-8")
+                    .body(html);
+        }
+
+        private String generateHtml(JobRecord record) {
+            // 대표 이미지 하나만 사용
+            String imageUrl = record.getRecordImages().isEmpty() ? "" : record.getRecordImages().get(0).getImageUrl();
+
+            return """
+                <!DOCTYPE html>
+                <html lang="ko">
+                <head>
+                  <meta charset="UTF-8">
+                  <meta property="og:title" content="%s">
+                  <meta property="og:description" content="%s">
+                  <meta property="og:image" content="%s">
+                  <meta property="og:url" content="https://growvy.digitalbasis.com/api/public/records/%d">
+                  <title>%s</title>
+                </head>
+                <body>
+                  <h1>%s</h1>
+                  <p>%s</p>
+                </body>
+                </html>
+                """.formatted(
+                    record.getTitle(),
+                    record.getContent(),
+                    imageUrl,
+                    record.getApplicationId(),
+                    record.getTitle(),
+                    record.getTitle(),
+                    record.getContent()
+            );
         }
     }
+
 
 }
 
