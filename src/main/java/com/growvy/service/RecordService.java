@@ -20,7 +20,7 @@ public class RecordService {
     @Transactional
     public void uploadRecord(Long jobSeekerId, Long jobPostId, RecordUploadRequest req) {
         // 1. 신청(Application) 조회
-        Application application = applicationRepository.findByJobSeekerIdAndJobPostId(jobSeekerId, jobPostId)
+        Application application = applicationRepository.findByJobSeeker_User_IdAndJobPost_Id(jobSeekerId, jobPostId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 공고에 신청 내역이 없습니다."));
 
         // 2. Record 생성
