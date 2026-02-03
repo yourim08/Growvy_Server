@@ -76,7 +76,7 @@ public class JobRecordController {
     }
 
     @RestController
-    @RequestMapping("/public/records")
+    @RequestMapping("/api/public/records")
     @RequiredArgsConstructor
     public class PublicJobRecordController {
 
