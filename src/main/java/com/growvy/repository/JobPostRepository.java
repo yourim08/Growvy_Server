@@ -49,4 +49,18 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
     // DONE + volunteer (hourly_wage == 0)
     List<JobPost> findByUserAndStatusAndHourlyWage(User user, JobPost.Status status, int hourlyWage);
 
+    // 검색
+    @Query("""
+        SELECT jp FROM JobPost jp
+        WHERE jp.status = 'OPEN'
+          AND LOWER(jp.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+          AND (:state IS NULL OR jp.state = :state)
+          AND (:city IS NULL OR jp.city = :city)
+        ORDER BY jp.createdAt DESC
+    """)
+    List<JobPost> searchByKeywordAndLocation(
+            @Param("keyword") String keyword,
+            @Param("state") String state,
+            @Param("city") String city
+    );
 }
