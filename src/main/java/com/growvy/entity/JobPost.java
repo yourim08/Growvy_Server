@@ -84,6 +84,14 @@ public class JobPost {
     @Column(name = "view")
     private Long view = 0L;
 
+    // 주
+    @Column(name = "state", columnDefinition = "TEXT")
+    private String state;
+
+    // 도시
+    @Column(name = "city", columnDefinition = "TEXT")
+    private String city;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

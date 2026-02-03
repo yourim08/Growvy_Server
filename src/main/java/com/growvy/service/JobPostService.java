@@ -176,13 +176,16 @@ public class JobPostService {
         jobPost.setJobAddress(req.getJobAddress());
         jobPost.setStatus(JobPost.Status.OPEN);
 
-        // 위도, 경도 가져오기
-        Map<String, Double> coords = geoService.getCoordinates(req.getJobAddress());
-        if (coords == null || coords.get("lat") == null || coords.get("lng") == null) {
+        // 위도, 경도 + state, city 가져오기
+        Map<String, Object> locationInfo = geoService.getCoordinates(req.getJobAddress());
+        if (locationInfo == null || locationInfo.get("lat") == null || locationInfo.get("lng") == null) {
             throw new IllegalStateException("사업장 주소 좌표 변환 실패");
         }
-        jobPost.setLat(coords.get("lat"));
-        jobPost.setLng(coords.get("lng"));
+
+        jobPost.setLat((Double) locationInfo.get("lat"));
+        jobPost.setLng((Double) locationInfo.get("lng"));
+        jobPost.setState(locationInfo.getOrDefault("state", "").toString());
+        jobPost.setCity(locationInfo.getOrDefault("city", "").toString());
 
         JobPost savedJobPost = jobPostRepository.save(jobPost);
 
@@ -232,6 +235,8 @@ public class JobPostService {
         res.setJobAddress(savedJobPost.getJobAddress());
         res.setLat(savedJobPost.getLat());
         res.setLng(savedJobPost.getLng());
+        res.setState(savedJobPost.getState());
+        res.setCity(savedJobPost.getCity());
         res.setStatus(savedJobPost.getStatus().name());
         res.setCreatedAt(savedJobPost.getCreatedAt());
         res.setTags(savedTags.stream()
@@ -240,8 +245,10 @@ public class JobPostService {
         res.setImageUrls(savedImages.stream()
                 .map(JobPostImage::getImageUrl)
                 .toList());
+
         return res;
     }
+
 
     // 신청한 일 중에 특정 기간 조회
     public List<JobPostResponse> getMyAcceptedClosedJobs(JobSeekerProfile jobSeeker, String start, String end) {

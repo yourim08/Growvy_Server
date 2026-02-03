@@ -23,6 +23,8 @@ public class JobPostResponse {
     private String jobAddress;
     private Double lat;
     private Double lng;
+    private String state;
+    private String city;
     private LocalDateTime createdAt;
     private String status;
     private List<String> tags;

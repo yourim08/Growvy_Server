@@ -33,5 +33,13 @@ public class EmployerProfile {
     // 경도
     @Column(name = "lng", nullable = false)
     private Double lng;
+
+    // 주
+    @Column(name = "state", columnDefinition = "TEXT")
+    private String state;
+
+    // 도시
+    @Column(name = "city", columnDefinition = "TEXT")
+    private String city;
 }
 

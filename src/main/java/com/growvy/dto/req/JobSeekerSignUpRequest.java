@@ -28,7 +28,6 @@ public class JobSeekerSignUpRequest {
     // Interest
     private List<Long> interestIds;
 
-
     public enum Gender {
         MALE,
         FEMALE

@@ -95,21 +95,26 @@ public class AuthService {
 
         // 2. EmployerProfile 생성
         EmployerProfile employerProfile = new EmployerProfile();
-        employerProfile.setUser(user); // @MapsId → user.id 자동 매핑
+        employerProfile.setUser(user);
         employerProfile.setCompanyName(req.getCompanyName());
         employerProfile.setBusinessAddress(req.getBusinessAddress());
 
-        Map<String, Double> coords = geoService.getCoordinates(req.getBusinessAddress());
-        if (coords == null || coords.get("lat") == null || coords.get("lng") == null) {
+        // GeoService에서 좌표 + state, city 가져오기
+        Map<String, Object> locationInfo = geoService.getCoordinates(req.getBusinessAddress());
+        if (locationInfo == null || locationInfo.get("lat") == null || locationInfo.get("lng") == null) {
             throw new IllegalStateException("사업장 주소 좌표 변환 실패");
         }
 
-        employerProfile.setLat(coords.get("lat"));
-        employerProfile.setLng(coords.get("lng"));
-        log.info("EmployerProfile 좌표 설정: lat={}, lng={}", coords.get("lat"), coords.get("lng"));
+        employerProfile.setLat((Double) locationInfo.get("lat"));
+        employerProfile.setLng((Double) locationInfo.get("lng"));
+        employerProfile.setState(locationInfo.getOrDefault("state", "").toString());
+        employerProfile.setCity(locationInfo.getOrDefault("city", "").toString());
+
+        log.info("EmployerProfile 위치 설정: lat={}, lng={}, state={}, city={}",
+                locationInfo.get("lat"), locationInfo.get("lng"),
+                locationInfo.getOrDefault("state", ""), locationInfo.getOrDefault("city", ""));
 
         employerProfileRepository.save(employerProfile);
-
     }
 
     @Transactional
@@ -148,23 +153,27 @@ public class AuthService {
 
         // 2. JobSeekerProfile 생성
         JobSeekerProfile jobSeekerProfile = new JobSeekerProfile();
-        jobSeekerProfile.setUser(user); // @MapsId → user.id 자동 매핑
+        jobSeekerProfile.setUser(user);
         jobSeekerProfile.setHomeAddress(req.getHomeAddress());
         jobSeekerProfile.setCareer(req.getCareer());
         jobSeekerProfile.setBio(req.getBio());
 
-        // 위도, 경도 가져오기
-        Map<String, Double> coords = geoService.getCoordinates(req.getHomeAddress());
-        if (coords == null || coords.get("lat") == null || coords.get("lng") == null) {
+        // GeoService에서 좌표 + state, city 가져오기
+        Map<String, Object> locationInfo = geoService.getCoordinates(req.getHomeAddress());
+        if (locationInfo == null || locationInfo.get("lat") == null || locationInfo.get("lng") == null) {
             throw new IllegalStateException("주소 좌표 변환 실패");
         }
 
-        jobSeekerProfile.setLat(coords.get("lat"));
-        jobSeekerProfile.setLng(coords.get("lng"));
-        log.info("JobSeekerProfile 좌표 설정: lat={}, lng={}", coords.get("lat"), coords.get("lng"));
+        jobSeekerProfile.setLat((Double) locationInfo.get("lat"));
+        jobSeekerProfile.setLng((Double) locationInfo.get("lng"));
+        jobSeekerProfile.setState(locationInfo.getOrDefault("state", "").toString());
+        jobSeekerProfile.setCity(locationInfo.getOrDefault("city", "").toString());
+
+        log.info("JobSeekerProfile 위치 설정: lat={}, lng={}, state={}, city={}",
+                locationInfo.get("lat"), locationInfo.get("lng"),
+                locationInfo.getOrDefault("state", ""), locationInfo.getOrDefault("city", ""));
 
         jobSeekerProfileRepository.save(jobSeekerProfile);
-
 
         // 3. Interest 연결
         if (req.getInterestIds() != null && !req.getInterestIds().isEmpty()) {
