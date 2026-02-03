@@ -22,4 +22,7 @@ public interface JobRecordRepository extends JpaRepository<JobRecord, Long> {
             @Param("jobPostId") Long jobPostId
     );
 
+    // 공유용 (JWT없음)
+    Optional<JobRecord> findByApplication_JobPost_Id(Long jobPostId);
+
 }

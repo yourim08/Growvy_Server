@@ -106,4 +106,17 @@ public class JobRecordService {
         jobRecordRepository.save(record);
     }
 
+    @Transactional(readOnly = true)
+    public JobRecord getPublicRecord(Long jobPostId) {
+        JobRecord record = jobRecordRepository
+                .findByApplication_JobPost_Id(jobPostId)
+                .orElseThrow(() -> new IllegalArgumentException("공유 가능한 기록이 존재하지 않습니다."));
+
+        // 공유 조건 제한
+        if (!record.getIsCompleted()) {
+            throw new IllegalStateException("완료된 기록만 공유할 수 있습니다.");
+        }
+        return record;
+    }
+
 }

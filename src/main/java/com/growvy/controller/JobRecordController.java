@@ -74,5 +74,23 @@ public class JobRecordController {
         jobRecordService.updateCompletedRecord(jobSeekerId, jobPostId, req);
         return ResponseEntity.ok("완료된 기록이 수정되었습니다.");
     }
+
+    @RestController
+    @RequestMapping("/public/records")
+    @RequiredArgsConstructor
+    public class PublicJobRecordController {
+
+        private final JobRecordService jobRecordService;
+
+        @Operation(summary = "공유용 기록 조회", description = "JWT 없이 접근 가능한 기록 조회 API")
+        @GetMapping("/{jobPostId}")
+        public ResponseEntity<JobRecord> getPublicRecord(
+                @PathVariable Long jobPostId
+        ) {
+            JobRecord record = jobRecordService.getPublicRecord(jobPostId);
+            return ResponseEntity.ok(record);
+        }
+    }
+
 }
 
