@@ -43,7 +43,7 @@ public class JobRecord {
     }
 
     // Record ↔ RecordImage 1:N 관계
-    @OneToMany(mappedBy = "record", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "jobRecord", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sortOrder ASC")
     private List<JobRecordImage> recordImages = new ArrayList<>();
 }
