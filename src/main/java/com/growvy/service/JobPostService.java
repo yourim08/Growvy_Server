@@ -27,22 +27,23 @@ public class JobPostService {
     private final GeoService geoService;
     private final JobPostImageRepository jobPostImageRepository;
 
-    // 모든 일 최신순 조회 API (신청한 것 제외)
+    // 모든 OPEN 공고 중 내가 신청하지 않은 것만 최신순 조회
+    @Transactional(readOnly = true)
     public List<JobPostResponse> getAllPostsExcludingMyApplications(JobSeekerProfile jobSeeker) {
 
-        // 1. 내가 신청한 게시물 ID
+        // 1. 내가 신청한 공고 ID 목록
         List<Long> appliedJobIds = applicationRepository.findByJobSeeker(jobSeeker)
                 .stream()
                 .map(app -> app.getJobPost().getId())
                 .toList();
 
-        // 2. 모든 게시물 중 내가 신청하지 않은 것, 최신순 정렬
-        List<JobPost> posts;
-        if (appliedJobIds.isEmpty()) {
-            posts = jobPostRepository.findAllByStatusOrderByCreatedAtDesc(JobPost.Status.OPEN);
-        } else {
-            posts = jobPostRepository.findAllByIdNotInAndStatusOrderByCreatedAtDesc(appliedJobIds, JobPost.Status.OPEN);
-        }
+        // 2. OPEN 상태 + 미신청 공고만 조회
+        List<JobPost> posts = appliedJobIds.isEmpty()
+                ? jobPostRepository.findAllByStatusOrderByCreatedAtDesc(JobPost.Status.OPEN)
+                : jobPostRepository.findAllByIdNotInAndStatusOrderByCreatedAtDesc(
+                appliedJobIds,
+                JobPost.Status.OPEN
+        );
 
         // 3. DTO 변환
         return posts.stream().map(jp -> {
@@ -62,12 +63,15 @@ public class JobPostService {
             res.setLng(jp.getLng());
             res.setCreatedAt(jp.getCreatedAt());
             res.setStatus(jp.getStatus().name());
-            res.setTags(jp.getJobPostTags().stream()
-                    .map(tag -> tag.getInterest().getName())
-                    .toList());
+            res.setTags(
+                    jp.getJobPostTags().stream()
+                            .map(tag -> tag.getInterest().getName())
+                            .toList()
+            );
             return res;
         }).toList();
     }
+
 
 
     // 인기순 정렬 API (조회수 기반)
