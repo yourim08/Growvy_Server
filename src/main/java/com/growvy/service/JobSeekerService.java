@@ -55,13 +55,16 @@ public class JobSeekerService {
         }
     }
 
-    // 신청한 일 조회 - APPLIED 상태만
+    // 신청한 일 조회 - APPLIED + ACCEPTED
     public List<JobPostResponse> getMyAppliedJobs(JobSeekerProfile jobSeeker) {
         List<Application> applications = applicationRepository.findByJobSeeker(jobSeeker);
 
         return applications.stream()
-                .filter(app -> app.getStatus() == Application.Status.APPLIED) // APPLIED만 조회
-                .sorted((a, b) -> b.getAppliedAt().compareTo(a.getAppliedAt())) // 최근 신청이 위
+                .filter(app ->
+                        app.getStatus() == Application.Status.APPLIED ||
+                                app.getStatus() == Application.Status.ACCEPTED
+                )
+                .sorted((a, b) -> b.getAppliedAt().compareTo(a.getAppliedAt()))
                 .map(app -> {
                     JobPost post = app.getJobPost();
 
@@ -82,24 +85,31 @@ public class JobSeekerService {
                     res.setState(post.getState());
                     res.setCity(post.getCity());
                     res.setCreatedAt(post.getCreatedAt());
-                    res.setStatus(post.getStatus().name());
 
-                    // 이미지 URL
-                    res.setImageUrls(post.getJobPostImages() != null
-                            ? post.getJobPostImages().stream().map(JobPostImage::getImageUrl).toList()
-                            : new ArrayList<>());
+                    //
+                    res.setStatus(app.getStatus().name());
 
-                    // 태그
-                    res.setTags(post.getJobPostTags() != null
-                            ? post.getJobPostTags().stream()
-                            .map(tag -> tag.getInterest().getName())
-                            .toList()
-                            : new ArrayList<>());
+                    res.setImageUrls(
+                            post.getJobPostImages() != null
+                                    ? post.getJobPostImages().stream()
+                                    .map(JobPostImage::getImageUrl)
+                                    .toList()
+                                    : new ArrayList<>()
+                    );
+
+                    res.setTags(
+                            post.getJobPostTags() != null
+                                    ? post.getJobPostTags().stream()
+                                    .map(tag -> tag.getInterest().getName())
+                                    .toList()
+                                    : new ArrayList<>()
+                    );
 
                     return res;
                 })
                 .toList();
     }
+
 
     // 완료 일 조회 - DONE 상태만 + works/volunteer 분기
     @Transactional(readOnly = true)
