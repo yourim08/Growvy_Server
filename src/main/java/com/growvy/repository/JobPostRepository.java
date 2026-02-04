@@ -64,3 +64,4 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
             @Param("city") String city
     );
 }
+

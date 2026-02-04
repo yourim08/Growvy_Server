@@ -74,22 +74,23 @@ public class JobPostService {
 
 
 
-    // 인기순 정렬 API (조회수 기반)
+    // 모든 OPEN 공고 중 내가 신청하지 않은 것만 인기순 정렬 (view 기반)
+    @Transactional(readOnly = true)
     public List<JobPostResponse> getAllPostsByPopularity(JobSeekerProfile jobSeeker) {
 
-        // 1. 내가 신청한 게시물 ID
+        // 1. 내가 신청한 공고 ID 목록
         List<Long> appliedJobIds = applicationRepository.findByJobSeeker(jobSeeker)
                 .stream()
                 .map(app -> app.getJobPost().getId())
                 .toList();
 
-        // 2. 인기순 조회
-        List<JobPost> posts;
-        if (appliedJobIds.isEmpty()) {
-            posts = jobPostRepository.findAllByStatusOrderByViewDesc(JobPost.Status.OPEN);
-        } else {
-            posts = jobPostRepository.findAllByIdNotInAndStatusOrderByViewDesc(appliedJobIds, JobPost.Status.OPEN);
-        }
+        // 2. OPEN 상태 + 미신청 공고만 조회 (view DESC)
+        List<JobPost> posts = appliedJobIds.isEmpty()
+                ? jobPostRepository.findAllByStatusOrderByViewDesc(JobPost.Status.OPEN)
+                : jobPostRepository.findAllByIdNotInAndStatusOrderByViewDesc(
+                appliedJobIds,
+                JobPost.Status.OPEN
+        );
 
         // 3. DTO 변환
         return posts.stream().map(jp -> {
