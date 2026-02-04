@@ -63,21 +63,45 @@ public class JobSeekerService {
                 .filter(app -> app.getStatus() == Application.Status.APPLIED) // APPLIED만 조회
                 .sorted((a, b) -> b.getAppliedAt().compareTo(a.getAppliedAt())) // 최근 신청이 위
                 .map(app -> {
+                    JobPost post = app.getJobPost();
+
                     JobPostResponse res = new JobPostResponse();
-                    res.setId(app.getJobPost().getId());
-                    res.setTitle(app.getJobPost().getTitle());
-                    res.setStartDate(app.getJobPost().getStartDate());
-                    res.setEndDate(app.getJobPost().getEndDate());
-                    res.setStartTime(app.getJobPost().getStartTime());
-                    res.setEndTime(app.getJobPost().getEndTime());
-                    res.setStatus(app.getStatus().name());
+                    res.setId(post.getId());
+                    res.setTitle(post.getTitle());
+                    res.setCompanyName(post.getCompanyName());
+                    res.setDescription(post.getDescription());
+                    res.setCount(post.getCount());
+                    res.setStartDate(post.getStartDate());
+                    res.setEndDate(post.getEndDate());
+                    res.setStartTime(post.getStartTime());
+                    res.setEndTime(post.getEndTime());
+                    res.setHourlyWage(post.getHourlyWage());
+                    res.setJobAddress(post.getJobAddress());
+                    res.setLat(post.getLat());
+                    res.setLng(post.getLng());
+                    res.setState(post.getState());
+                    res.setCity(post.getCity());
+                    res.setCreatedAt(post.getCreatedAt());
+                    res.setStatus(post.getStatus().name());
+
+                    // 이미지 URL
+                    res.setImageUrls(post.getJobPostImages() != null
+                            ? post.getJobPostImages().stream().map(JobPostImage::getImageUrl).toList()
+                            : new ArrayList<>());
+
+                    // 태그
+                    res.setTags(post.getJobPostTags() != null
+                            ? post.getJobPostTags().stream()
+                            .map(tag -> tag.getInterest().getName())
+                            .toList()
+                            : new ArrayList<>());
+
                     return res;
                 })
                 .toList();
     }
 
-
-    //  완료 일 조회 - DONE 상태만 + works/volunteer 분기
+    // 완료 일 조회 - DONE 상태만 + works/volunteer 분기
     @Transactional(readOnly = true)
     public List<JobPostResponse> getMyDoneJobs(JobSeekerProfile jobSeeker, String type) {
         List<Application> applications = applicationRepository.findByJobSeeker(jobSeeker).stream()
@@ -96,18 +120,44 @@ public class JobSeekerService {
 
         return applications.stream()
                 .map(app -> {
+                    JobPost post = app.getJobPost();
+
                     JobPostResponse res = new JobPostResponse();
-                    res.setId(app.getJobPost().getId());
-                    res.setTitle(app.getJobPost().getTitle());
-                    res.setStartDate(app.getJobPost().getStartDate());
-                    res.setEndDate(app.getJobPost().getEndDate());
-                    res.setStartTime(app.getJobPost().getStartTime());
-                    res.setEndTime(app.getJobPost().getEndTime());
-                    res.setStatus(app.getStatus().name());
+                    res.setId(post.getId());
+                    res.setTitle(post.getTitle());
+                    res.setCompanyName(post.getCompanyName());
+                    res.setDescription(post.getDescription());
+                    res.setCount(post.getCount());
+                    res.setStartDate(post.getStartDate());
+                    res.setEndDate(post.getEndDate());
+                    res.setStartTime(post.getStartTime());
+                    res.setEndTime(post.getEndTime());
+                    res.setHourlyWage(post.getHourlyWage());
+                    res.setJobAddress(post.getJobAddress());
+                    res.setLat(post.getLat());
+                    res.setLng(post.getLng());
+                    res.setState(post.getState());
+                    res.setCity(post.getCity());
+                    res.setCreatedAt(post.getCreatedAt());
+                    res.setStatus(post.getStatus().name());
+
+                    // 이미지 URL
+                    res.setImageUrls(post.getJobPostImages() != null
+                            ? post.getJobPostImages().stream().map(JobPostImage::getImageUrl).toList()
+                            : new ArrayList<>());
+
+                    // 태그
+                    res.setTags(post.getJobPostTags() != null
+                            ? post.getJobPostTags().stream()
+                            .map(tag -> tag.getInterest().getName())
+                            .toList()
+                            : new ArrayList<>());
+
                     return res;
                 })
                 .toList();
     }
+
 
     // 신청한 일 취소 API
     @Transactional
