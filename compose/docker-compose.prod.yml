@@ -25,6 +25,8 @@ services:
       - ../env/prod.env
     volumes:
       - postgres-volume:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
     networks:
       - mynet2
 
