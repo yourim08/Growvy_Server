@@ -7,4 +7,5 @@ import java.util.Optional;
 
 public interface EmployerProfileRepository extends JpaRepository<EmployerProfile, Long> {
     Optional<EmployerProfile> findByUserId(Long userId);
+
 }

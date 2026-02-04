@@ -22,10 +22,10 @@ public class EmployerService {
     private final UserRepository userRepository;
     private final ApplicationRepository applicationRepository;
 
-    // Employer가 올린 공고 조회 (DONE 제외)
+    // Employer가 올린 OPEN 공고 조회
     public List<JobPostResponse> getMyPosts(User employerUser) {
-        List<JobPost> posts = jobPostRepository.findByUserAndStatusNot(
-                employerUser.getEmployerProfile().getUser(), JobPost.Status.DONE
+        List<JobPost> posts = jobPostRepository.findByUserAndStatus(
+                employerUser.getEmployerProfile().getUser(), JobPost.Status.OPEN
         );
 
         // DTO 변환 + 최근 생성 순 정렬
