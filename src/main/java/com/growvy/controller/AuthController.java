@@ -3,6 +3,7 @@ package com.growvy.controller;
 import com.growvy.dto.req.EmployerSignUpRequest;
 import com.growvy.dto.req.JobSeekerSignUpRequest;
 import com.growvy.dto.res.AuthResponse;
+import com.growvy.dto.res.IsEmployerResponse;
 import com.growvy.dto.res.SignUpResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +51,15 @@ public class AuthController {
         String jwt = header.replace("Bearer ", "").trim();
         authService.jobseekerSignUp(jwt, request);
         return ResponseEntity.ok(new SignUpResponse(true));
+    }
+
+    @Operation(summary = "역할 조회 API", description = "JobSeeker / Employer")
+    @GetMapping("/is-employer")
+    public IsEmployerResponse isEmployer(
+            @RequestHeader("Authorization") String authorization
+    ) {
+        String jwt = authorization.replace("Bearer ", "");
+        return authService.isEmployer(jwt);
     }
 }
 

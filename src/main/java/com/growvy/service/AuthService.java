@@ -3,6 +3,7 @@ package com.growvy.service;
 import com.growvy.dto.req.EmployerSignUpRequest;
 import com.growvy.dto.req.JobSeekerSignUpRequest;
 import com.growvy.dto.res.AuthResponse;
+import com.growvy.dto.res.IsEmployerResponse;
 import com.growvy.entity.*;
 import com.growvy.repository.*;
 import com.growvy.util.JwtUtil;
@@ -185,6 +186,21 @@ public class AuthService {
                 jobSeekerInterestRepository.save(jsi);
             }
         }
+    }
+
+    // 역할 조회
+    public IsEmployerResponse isEmployer(String jwt) {
+        String firebaseUid = jwtProvider.getFirebaseUid(jwt);
+
+        User user = userRepository.findByFirebaseUid(firebaseUid)
+                .orElse(null);
+
+        if (user == null) {
+            return new IsEmployerResponse(false);
+        }
+
+        boolean isEmployer = employerProfileRepository.existsById(user.getId());
+        return new IsEmployerResponse(isEmployer);
     }
 
     // User 조회
