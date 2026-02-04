@@ -22,10 +22,12 @@ public class EmployerService {
     private final UserRepository userRepository;
     private final ApplicationRepository applicationRepository;
 
-    // Employer가 올린 OPEN 공고 조회
+    // Employer가 올린 OPEN / CLOSED 공고 조회
     public List<JobPostResponse> getMyPosts(User employerUser) {
-        List<JobPost> posts = jobPostRepository.findByUserAndStatus(
-                employerUser.getEmployerProfile().getUser(), JobPost.Status.OPEN
+        List<JobPost.Status> statuses = List.of(JobPost.Status.OPEN, JobPost.Status.CLOSED);
+
+        List<JobPost> posts = jobPostRepository.findByUserAndStatusIn(
+                employerUser, statuses
         );
 
         return posts.stream()
@@ -54,13 +56,14 @@ public class EmployerService {
                             .toList());
                     res.setImageUrls(post.getJobPostImages() != null
                             ? post.getJobPostImages().stream()
-                            .map(JobPostImage::getImageUrl) // 여기서 직접 imageUrl 가져오기
+                            .map(JobPostImage::getImageUrl)
                             .toList()
                             : new ArrayList<>());
                     return res;
                 })
                 .toList();
     }
+
 
     // Employer가 올린 DONE 공고 조회
     public List<JobPostResponse> getMyDonePosts(User employerUser, String type) {
@@ -164,9 +167,5 @@ public class EmployerService {
             }
         }
         applicationRepository.saveAll(allApplications);
-
-        // 5. 공고 상태 CLOSED로
-        jobPost.setStatus(JobPost.Status.CLOSED);
-        jobPostRepository.save(jobPost);
     }
 }

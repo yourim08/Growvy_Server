@@ -63,5 +63,8 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
             @Param("state") String state,
             @Param("city") String city
     );
+
+    List<JobPost> findByUserAndStatusIn(User user, List<JobPost.Status> statuses);
+
 }
 
