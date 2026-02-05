@@ -28,7 +28,7 @@ public class JobRecordService {
                 .findByJobSeeker_User_IdAndJobPost_Id(jobSeekerId, jobPostId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 공고에 신청 내역이 없습니다."));
 
-        // 🔥 핵심: 기존 record 조회
+        // 🔥 기존 record 조회 or 생성
         JobRecord record = jobRecordRepository.findByApplicationId(application.getId())
                 .orElseGet(() -> {
                     JobRecord r = new JobRecord();
@@ -43,7 +43,7 @@ public class JobRecordService {
         record.setPostTitle(req.getPostTitle());
         record.setIsCompleted(isCompleted);
 
-        // 이미지 처리 (기존 삭제 후 재등록 권장)
+        // 이미지 처리
         record.getRecordImages().clear();
         if (req.getImageUrls() != null) {
             for (int i = 0; i < req.getImageUrls().size(); i++) {
@@ -56,7 +56,11 @@ public class JobRecordService {
         }
 
         jobRecordRepository.save(record);
+        application.setStatus(Application.Status.DONE);
+        // 영속 상태면 save 안 해도 되지만 명시적으로 해도 됨
+        applicationRepository.save(application);
     }
+
 
     @Transactional(readOnly = true)
     public JobRecord getRecord(Long jobSeekerId, Long jobPostId) {
