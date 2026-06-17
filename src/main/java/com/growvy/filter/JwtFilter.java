@@ -28,30 +28,42 @@ public class JwtFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        String header = request.getHeader("Authorization");
+        String uri = request.getRequestURI();
 
-        if (request.getRequestURI().equals("/api/auth/login")) {
+        if (uri.equals("/api/auth/login")
+                || uri.equals("/api/auth/signup/employer")
+                || uri.equals("/api/auth/signup/jobseeker")) {
+
             filterChain.doFilter(request, response);
             return;
         }
 
+        String header = request.getHeader("Authorization");
+
+        // Authorization 헤더 없음
         if (header == null || !header.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
+        // Bearer 제거
         String token = header.substring(7);
 
+        // 백엔드 JWT 검증
         if (!jwtUtil.validateToken(token)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String firebaseUid = jwtUtil.getFirebaseUid(token);
-        Long userId = jwtUtil.getUserId(token);
+        // 백엔드 JWT에서 정보 추출
+        String firebaseUid = jwtUtil.getFirebaseUidFromBackendToken(token);
 
         UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(firebaseUid, null, List.of());
+                new UsernamePasswordAuthenticationToken(
+                        firebaseUid,
+                        null,
+                        List.of()
+                );
 
         SecurityContextHolder.getContext().setAuthentication(auth);
 
