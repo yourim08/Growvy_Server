@@ -22,7 +22,7 @@ public class AuthController {
 
     private final AuthService authService;
 
-    @Operation(summary = "[공통] 로그인 API", description = "사용자의 firebaseUid를 조회해 accessToken과 회원가입 여부를 반환")
+    @Operation(summary = "[공통] 로그인", description = "사용자의 firebaseUid를 조회해 accessToken과 회원가입 여부를 반환")
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(
             @RequestHeader("Authorization") String header
@@ -33,7 +33,7 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(firebaseToken));
     }
 
-    @Operation(summary = "[Employer] 회원가입 API", description = "Employer 역할의 회원가입을 진행")
+    @Operation(summary = "[Employer] 회원가입", description = "Employer 역할의 회원가입을 진행")
     @PostMapping("/signup/employer")
     public ResponseEntity<SignUpResponse> employerSignup(
             @RequestHeader("Authorization") String header,
@@ -44,7 +44,7 @@ public class AuthController {
         return ResponseEntity.ok(new SignUpResponse(true));
     }
 
-    @Operation(summary = "[JobSeeker] 회원가입 API", description = "JobSeeker 역할의 회원가입을 진행")
+    @Operation(summary = "[JobSeeker] 회원가입", description = "JobSeeker 역할의 회원가입을 진행")
     @PostMapping("/signup/jobseeker")
     public ResponseEntity<SignUpResponse> jobseekerSignup(
             @RequestHeader("Authorization") String header,
@@ -55,7 +55,7 @@ public class AuthController {
         return ResponseEntity.ok(new SignUpResponse(true));
     }
 
-    @Operation(summary = "[공통] 역할 조회 API", description = "JobSeeker / Employer")
+    @Operation(summary = "[공통] 역할 조회", description = "JobSeeker / Employer")
     @GetMapping("/is-employer")
     public IsEmployerResponse isEmployer(
             @RequestHeader("Authorization") String authorization

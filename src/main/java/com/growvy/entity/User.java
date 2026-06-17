@@ -41,12 +41,6 @@ public class User {
     @JoinColumn(name = "profile_id")
     private Image profileImage;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "banner_id")
-    private Image bannerImage;
-
-    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
-    private EmployerProfile employerProfile;
 
     @Column(name = "average_rating", nullable = false)
     private Double averageRating = 0.0;
@@ -61,6 +55,8 @@ public class User {
     }
 
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
-    private JobSeekerProfile jobSeekerProfile;
+    private EmployerProfile employerProfile;
 
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
+    private JobSeekerProfile jobSeekerProfile;
 }
