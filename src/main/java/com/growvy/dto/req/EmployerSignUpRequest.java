@@ -17,7 +17,6 @@ public class EmployerSignUpRequest {
     private User.Gender gender;
     private String phone;
     private Long profileImageId;
-    private Long bannerImageId;
 
     // EmployerProfile
     private String companyName;

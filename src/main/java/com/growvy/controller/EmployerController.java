@@ -1,8 +1,9 @@
 package com.growvy.controller;
 
-
-import com.growvy.dto.res.ApplicationResponse;
-import com.growvy.dto.res.JobPostResponse;
+import com.growvy.annotation.CurrentUser;
+import com.growvy.dto.req.ReviewRequest;
+import com.growvy.dto.req.SelectApplicantsRequest;
+import com.growvy.dto.res.*;
 import com.growvy.entity.JobPost;
 import com.growvy.entity.User;
 import com.growvy.repository.JobPostRepository;
@@ -28,66 +29,82 @@ public class EmployerController {
     private final JwtUtil jwtProvider;
     private final JobPostRepository jobPostRepository;
 
-    @Operation(summary = "[Employer] 올린 일 목록 조회", description = "내가 올린 모든 일 조회-DONE제외")
-    @GetMapping("/posts")
-    public List<JobPostResponse> getMyPosts(
-            @RequestHeader("Authorization") String header
+    @Operation(summary = "[Employer] 모집중인 일 목록 조회", description = "Hiring 상태의 모든 일 조회")
+    @GetMapping("/posts/hiring")
+    public List<HiringJobPostResponse> getHiringPosts(
+            @CurrentUser User user
     ) {
-        String jwt = header.replace("Bearer ", "").trim();
-        String firebaseUid = jwtProvider.getFirebaseUid(jwt);
-
-        User user = userRepository.findByFirebaseUid(firebaseUid)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
-        return employerService.getMyPosts(user);
+        return employerService.getHiringPosts(user);
     }
 
-    @Operation(summary = "[Employer] DONE 공고 조회", description = "내가 올린 DONE 공고 조회, 끝난 일 기준 내림차순")
+    @Operation(summary = "[Employer] 진행중인 공고 조회", description = "Ongoing 상태의 모든 일 조회")
+    @GetMapping("/posts/ongoing")
+    public List<OngoingJobPostResponse> getOngoingPosts(
+            @CurrentUser User user
+    ) {
+        return employerService.getOngoingPosts(user);
+    }
+
+    @Operation(summary = "[Employer] 끝난 공고 조회", description = "Done 상태의 모든 일 조회")
     @GetMapping("/posts/done")
-    public ResponseEntity<List<JobPostResponse>> getMyDonePosts(
-            @RequestHeader("Authorization") String header,
-            @RequestParam(required = false) String type
+    public List<DoneJobPostResponse> getDonePosts(
+            @CurrentUser User user
     ) {
-        String jwt = header.replace("Bearer ", "").trim();
-        String firebaseUid = jwtProvider.getFirebaseUid(jwt);
-
-        User user = userRepository.findByFirebaseUid(firebaseUid)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
-        List<JobPostResponse> res = employerService.getMyDonePosts(user, type);
-        return ResponseEntity.ok(res);
+        return employerService.getDonePosts(user);
     }
 
-    @Operation(summary = "[Employer] 공고 신청자 조회", description = "특정 공고에 신청한 사람들 조회, 최근 신청순")
-    @GetMapping("/posts/{jobPostId}/applications")
-    public ResponseEntity<List<ApplicationResponse>> getApplicants(
-            @RequestHeader("Authorization") String header,
-            @PathVariable Long jobPostId
+    @Operation(
+            summary = "[Employer] 지원자 목록 조회",
+            description = "특정 공고에 지원한 사람 조회"
+    )
+    @GetMapping("/posts/{postId}/applicants")
+    public List<ApplicationResponse> getApplicants(
+            @CurrentUser User employer,
+            @PathVariable Long postId
     ) {
-        String jwt = header.replace("Bearer ", "").trim();
-        String firebaseUid = jwtProvider.getFirebaseUid(jwt);
-
-        User user = userRepository.findByFirebaseUid(firebaseUid)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
-        List<ApplicationResponse> res = employerService.getApplicantsForJobPost(jobPostId);
-        return ResponseEntity.ok(res);
+        return employerService.getApplicants(employer, postId);
     }
 
-    @Operation(summary = "[Employer] 신청자 수락", description = "공고에 선택된 지원자 수락 및 공고 CLOSED 처리")
-    @PostMapping("/posts/{jobPostId}/accept")
-    public ResponseEntity<String> acceptApplicants(
-            @RequestHeader("Authorization") String header,
-            @PathVariable Long jobPostId,
-            @RequestBody List<Long> selectedApplicationIds
+    @Operation(
+            summary = "[Employer] Done공고 리뷰 남길 사람 목록 조회",
+            description = "Done 공고에 함께 일한 사람 중 리뷰 안남긴 사람 조회"
+    )
+    @GetMapping("/posts/{postId}/review-targets")
+    public List<ReviewTargetResponse> getReviewTargets(
+            @CurrentUser User employer,
+            @PathVariable Long postId
     ) {
-        String jwt = header.replace("Bearer ", "").trim();
-        String firebaseUid = jwtProvider.getFirebaseUid(jwt);
+        return employerService.getReviewTargets(employer, postId);
+    }
 
-        User user = userRepository.findByFirebaseUid(jwt)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+    @Operation(
+            summary = "[Employer] 지원자 선발",
+            description = "모집 인원만큼 지원자를 선발"
+    )
+    @PostMapping("/posts/{postId}/select")
+    public ResponseEntity<Void> selectApplicants(
+            @CurrentUser User employer,
+            @PathVariable Long postId,
+            @RequestBody SelectApplicantsRequest request
+    ) {
 
-        employerService.acceptApplicants(jobPostId, selectedApplicationIds, user);
-        return ResponseEntity.ok("선택된 지원자를 수락하고 공고를 CLOSED 처리했습니다.");
+        employerService.selectApplicants(
+                employer,
+                postId,
+                request.getApplicationIds()
+        );
+
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/posts/{postId}/reviews")
+    @Operation(summary = "[Employer] 리뷰 작성", description = "구직자에게 리뷰를 작성합니다.")
+    public ResponseEntity<Void> createReview(
+            @CurrentUser User employer,
+            @PathVariable Long postId,
+            @RequestBody ReviewRequest request // 여기서 Setter를 이용해 값이 채워짐
+    ) {
+        employerService.createReview(employer, postId, request);
+        return ResponseEntity.ok().build();
     }
 }
