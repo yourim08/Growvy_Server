@@ -18,7 +18,6 @@ public class JobSeekerSignUpRequest {
     private Gender gender;
     private String phone;
     private Long profileImageId;
-    private Long bannerImageId;
 
     // JobSeekerProfile
     private String homeAddress;

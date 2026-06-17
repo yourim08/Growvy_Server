@@ -2,6 +2,7 @@ package com.growvy.service;
 
 import com.growvy.dto.req.JobPostRequest;
 import com.growvy.dto.res.JobPostResponse;
+import com.growvy.dto.res.JobSeekerJobPostResponse;
 import com.growvy.entity.*;
 import com.growvy.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -9,10 +10,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,169 +25,183 @@ public class JobSeekerService {
 
     private final ApplicationRepository applicationRepository;
     private final JobPostRepository jobPostRepository;
-
-    // 일 신청 API
-    @Transactional
-    public void applyJob(JobSeekerProfile seeker, Long jobPostId) {
-        // 1. 신청할 게시물 조회
-        JobPost jobPost = jobPostRepository.findById(jobPostId)
-                .orElseThrow(() -> new IllegalArgumentException("공고를 찾을 수 없습니다."));
-
-        if (jobPost.getStatus() == JobPost.Status.CLOSED) {
-            throw new IllegalStateException("이미 마감된 일입니다.");
-        }
-
-        // 2. 이미 신청했는지 확인
-        boolean alreadyApplied = applicationRepository.existsByJobSeekerAndJobPost(seeker, jobPost);
-        if (alreadyApplied) {
-            throw new IllegalStateException("이미 신청한 일입니다.");
-        }
-
-        // 3. Application 생성
-        Application app = new Application();
-        app.setJobPost(jobPost);
-        app.setJobSeeker(seeker);
-        app.setStatus(Application.Status.APPLIED); // enum으로 변경
-        app.setAppliedAt(LocalDateTime.now());
-        applicationRepository.save(app);
-
-        // 4. 지원자 수 체크 후 최대인원 도달하면 CLOSED
-        long appliedCount = applicationRepository.countByJobPost(jobPost);
-        if (appliedCount >= jobPost.getCount()) {
-            jobPost.setStatus(JobPost.Status.CLOSED);
-            jobPostRepository.save(jobPost);
-        }
-    }
-
-    // 신청한 일 조회 - APPLIED + ACCEPTED
-    public List<JobPostResponse> getMyAppliedJobs(JobSeekerProfile jobSeeker) {
-        List<Application> applications = applicationRepository.findByJobSeeker(jobSeeker);
-
-        return applications.stream()
-                .filter(app ->
-                        app.getStatus() == Application.Status.APPLIED ||
-                                app.getStatus() == Application.Status.ACCEPTED
-                )
-                .sorted((a, b) -> b.getAppliedAt().compareTo(a.getAppliedAt()))
-                .map(app -> {
-                    JobPost post = app.getJobPost();
-
-                    JobPostResponse res = new JobPostResponse();
-                    res.setId(post.getId());
-                    res.setTitle(post.getTitle());
-                    res.setCompanyName(post.getCompanyName());
-                    res.setDescription(post.getDescription());
-                    res.setCount(post.getCount());
-                    res.setStartDate(post.getStartDate());
-                    res.setEndDate(post.getEndDate());
-                    res.setStartTime(post.getStartTime());
-                    res.setEndTime(post.getEndTime());
-                    res.setHourlyWage(post.getHourlyWage());
-                    res.setJobAddress(post.getJobAddress());
-                    res.setLat(post.getLat());
-                    res.setLng(post.getLng());
-                    res.setState(post.getState());
-                    res.setCity(post.getCity());
-                    res.setCreatedAt(post.getCreatedAt());
-                    res.setStatus(app.getStatus().name());
-
-                    res.setImageUrls(
-                            post.getJobPostImages() != null
-                                    ? post.getJobPostImages().stream()
-                                    .map(JobPostImage::getImageUrl)
-                                    .toList()
-                                    : new ArrayList<>()
-                    );
-
-                    res.setTags(
-                            post.getJobPostTags() != null
-                                    ? post.getJobPostTags().stream()
-                                    .map(tag -> tag.getInterest().getName())
-                                    .toList()
-                                    : new ArrayList<>()
-                    );
-
-                    return res;
-                })
-                .toList();
-    }
+    private final JobPostMemberRepository jobPostMemberRepository;
+    private final NoteRepository noteRepository;
 
 
-    // 완료 일 조회 - DONE 상태만 + works/volunteer 분기
+    // [JobSeeker] 신청한 일 조회 - APPLIED
     @Transactional(readOnly = true)
-    public List<JobPostResponse> getMyDoneJobs(JobSeekerProfile jobSeeker, String type) {
-        List<Application> applications = applicationRepository.findByJobSeeker(jobSeeker).stream()
-                .filter(app -> app.getJobPost().getStatus() == JobPost.Status.DONE)
-                .filter(app -> {
-                    if ("works".equalsIgnoreCase(type)) {
-                        return app.getJobPost().getHourlyWage() != 0;
-                    } else if ("volunteer".equalsIgnoreCase(type)) {
-                        return app.getJobPost().getHourlyWage() == 0;
-                    } else {
-                        return true; // type 없으면 모두 포함
-                    }
-                })
-                .sorted((a, b) -> b.getJobPost().getEndDate().compareTo(a.getJobPost().getEndDate()))
-                .toList();
+    public List<JobSeekerJobPostResponse> getAppliedJobPosts(User user) { // 💡 인자를 User 객체로 변경!
 
+        // 💡 레포지토리를 호출할 때 user.getId()를 넘겨줍니다.
+        List<Application> applications = applicationRepository.findAppliedPostsByApplicationDate(user.getId(), Application.Status.APPLIED);
+        LocalDate today = LocalDate.now();
+        // 2. 조회된 지원서 리스트를 순회하며 DTO 변환
         return applications.stream()
-                .map(app -> {
-                    JobPost post = app.getJobPost();
+                .map(application -> {
+                    JobPost post = application.getJobPost();
 
-                    JobPostResponse res = new JobPostResponse();
-                    res.setId(post.getId());
-                    res.setTitle(post.getTitle());
-                    res.setCompanyName(post.getCompanyName());
-                    res.setDescription(post.getDescription());
-                    res.setCount(post.getCount());
-                    res.setStartDate(post.getStartDate());
-                    res.setEndDate(post.getEndDate());
-                    res.setStartTime(post.getStartTime());
-                    res.setEndTime(post.getEndTime());
-                    res.setHourlyWage(post.getHourlyWage());
-                    res.setJobAddress(post.getJobAddress());
-                    res.setLat(post.getLat());
-                    res.setLng(post.getLng());
-                    res.setState(post.getState());
-                    res.setCity(post.getCity());
-                    res.setCreatedAt(post.getCreatedAt());
-                    res.setStatus(post.getStatus().name());
-
-                    // 이미지 URL
-                    res.setImageUrls(post.getJobPostImages() != null
-                            ? post.getJobPostImages().stream().map(JobPostImage::getImageUrl).toList()
-                            : new ArrayList<>());
-
-                    // 태그
-                    res.setTags(post.getJobPostTags() != null
-                            ? post.getJobPostTags().stream()
+                    // [태그 추출]
+                    List<String> employmentTags = post.getJobPostTags().stream()
+                            .filter(tag -> tag.getInterest().getType() == Interest.InterestType.EMPLOYMENT)
                             .map(tag -> tag.getInterest().getName())
-                            .toList()
-                            : new ArrayList<>());
+                            .collect(Collectors.toList());
 
-                    return res;
+                    // [이미지 추출]
+                    List<String> imageUrls = post.getImages().stream()
+                            .map(JobPostImage::getImageUrl)
+                            .toList();
+
+                    LocalDate deadlineDate = post.getRecruitmentDeadline().toLocalDate();
+                    long daysBetween = ChronoUnit.DAYS.between(today, deadlineDate);
+                    String dDay = daysBetween == 0 ? "D-Day" :
+                            daysBetween > 0 ? "D-" + daysBetween : "D+" + Math.abs(daysBetween);
+
+                    // 3. 빌더 패턴 조립
+                    return JobSeekerJobPostResponse.builder()
+                            .id(post.getId())
+                            .title(post.getTitle())
+                            .companyName(post.getCompanyName())
+                            .endDate(post.getEndDate())
+                            .tags(employmentTags)
+                            .dDay(dDay)
+                            .hourlyWage(post.getHourlyRates())
+                            .description(post.getDescription())
+                            .imageUrls(imageUrls)
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+
+    // [JobSeeker] 구직자 Ongoing 일 조회
+    @Transactional(readOnly = true)
+    public List<JobSeekerJobPostResponse> getOngoingJobPosts(User user) {
+
+        // 1. 구직자 ID로 'WORKING' 상태인 멤버십 내역을 모두 조회합니다.
+        List<JobPostMember> workingMembers = jobPostMemberRepository.findByJobSeeker_UserIdAndStatus(user.getId(), JobPostMember.Status.WORKING);
+        LocalDate today = LocalDate.now();
+
+        // 2. 조회된 리스트를 순회하며 공통 DTO로 변환
+        return workingMembers.stream()
+                .map(member -> {
+                    // JobPostMember 내부의 공고(JobPost) 객체를 꺼냅니다.
+                    JobPost post = member.getJobPost();
+
+                    // [태그 추출]
+                    List<String> employmentTags = post.getJobPostTags().stream()
+                            .filter(tag -> tag.getInterest().getType() == Interest.InterestType.EMPLOYMENT)
+                            .map(tag -> tag.getInterest().getName())
+                            .collect(Collectors.toList());
+
+                    // [이미지 추출]
+                    List<String> imageUrls = post.getImages().stream()
+                            .map(JobPostImage::getImageUrl)
+                            .toList();
+
+
+                    LocalDate deadlineDate = post.getRecruitmentDeadline().toLocalDate();
+                    long daysBetween = ChronoUnit.DAYS.between(today, deadlineDate);
+                    String dDay = daysBetween == 0 ? "D-Day" :
+                            daysBetween > 0 ? "D-" + daysBetween : "D+" + Math.abs(daysBetween);
+
+                    // 3. 기존과 동일한 DTO에 담아서 반환! (재사용의 마법 ✨)
+                    return JobSeekerJobPostResponse.builder()
+                            .id(post.getId())
+                            .title(post.getTitle())
+                            .companyName(post.getCompanyName())
+                            .endDate(post.getEndDate())
+                            .tags(employmentTags)
+                            .dDay(dDay)
+                            .hourlyWage(post.getHourlyRates())
+                            .description(post.getDescription())
+                            .imageUrls(imageUrls)
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+
+    // [JobSeeker] Done 상태 일 조회
+    @Transactional(readOnly = true)
+    public List<JobSeekerJobPostResponse> getDoneJobPosts(User user) {
+
+        // 1. 구직자 ID로 'DONE' 상태인 멤버십 내역을 모두 조회합니다.
+        List<JobPostMember> doneMembers = jobPostMemberRepository.findByJobSeeker_UserIdAndStatus(user.getId(), JobPostMember.Status.DONE);
+        LocalDate today = LocalDate.now();
+
+        // 2. 조회된 리스트를 순회하며 공통 DTO로 변환
+        return doneMembers.stream()
+                .map(member -> {
+                    JobPost post = member.getJobPost();
+
+                    // [태그 추출] 최신 문법(.toList()) 적용!
+                    List<String> employmentTags = post.getJobPostTags().stream()
+                            .filter(tag -> tag.getInterest().getType() == Interest.InterestType.EMPLOYMENT)
+                            .map(tag -> tag.getInterest().getName())
+                            .toList();
+
+                    // [이미지 추출]
+                    List<String> imageUrls = post.getImages().stream()
+                            .map(JobPostImage::getImageUrl)
+                            .toList();
+                    LocalDate deadlineDate = post.getRecruitmentDeadline().toLocalDate();
+                    long daysBetween = ChronoUnit.DAYS.between(today, deadlineDate);
+                    String dDay = daysBetween == 0 ? "D-Day" :
+                            daysBetween > 0 ? "D-" + daysBetween : "D+" + Math.abs(daysBetween);
+
+                    // 3. 기존과 동일한 DTO에 담아서 반환
+                    return JobSeekerJobPostResponse.builder()
+                            .id(post.getId())
+                            .title(post.getTitle())
+                            .companyName(post.getCompanyName())
+                            .endDate(post.getEndDate())
+                            .tags(employmentTags)
+                            .dDay(dDay)
+                            .hourlyWage(post.getHourlyRates())
+                            .description(post.getDescription())
+                            .imageUrls(imageUrls)
+                            .build();
                 })
                 .toList();
     }
 
 
-    // 신청한 일 취소 API
+    // [JobSeeker] 공고 지원
     @Transactional
-    public void cancelApplication(JobSeekerProfile seeker, Long jobPostId) {
-        JobPost jobPost = jobPostRepository.findById(jobPostId)
-                .orElseThrow(() -> new IllegalArgumentException("공고를 찾을 수 없습니다."));
+    public void applyJobPost(
+            User user,
+            Long postId
+    ) {
+        JobSeekerProfile jobSeeker = user.getJobSeekerProfile();
 
-        Application app = applicationRepository.findByJobSeekerAndJobPost(seeker, jobPost)
-                .orElseThrow(() -> new IllegalStateException("신청 내역이 없습니다."));
-
-        applicationRepository.delete(app);
-
-        // 신청자 수 체크 후, CLOSED였다면 빈 자리 생기면 OPEN으로 변경
-        long appliedCount = applicationRepository.countByJobPost(jobPost);
-        if (jobPost.getStatus() == JobPost.Status.CLOSED && appliedCount < jobPost.getCount()) {
-            jobPost.setStatus(JobPost.Status.OPEN);
-            jobPostRepository.save(jobPost);
+        if (jobSeeker == null) {
+            throw new IllegalArgumentException("구직자 프로필이 없습니다.");
         }
+
+        JobPost jobPost = jobPostRepository.findById(postId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("공고를 찾을 수 없습니다."));
+
+        // 이미 지원한 공고인지 확인
+        boolean alreadyApplied =
+                applicationRepository.existsByJobPostAndJobSeeker(
+                        jobPost,
+                        jobSeeker
+                );
+
+        if (alreadyApplied) {
+            throw new IllegalArgumentException("이미 지원한 공고입니다.");
+        }
+
+        Application application = new Application();
+
+        application.setJobPost(jobPost);
+        application.setJobSeeker(jobSeeker);
+        application.setStatus(Application.Status.APPLIED);
+        application.setAppliedAt(LocalDateTime.now());
+
+        applicationRepository.save(application);
     }
 }
 

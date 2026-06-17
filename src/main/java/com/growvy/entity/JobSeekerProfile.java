@@ -29,21 +29,5 @@ public class JobSeekerProfile {
     // 한 줄 소개
     @Column(name = "bio", length = 150)
     private String bio;
-
-    // 위도
-    @Column(name = "lat", nullable = false)
-    private Double lat;
-
-    // 경도
-    @Column(name = "lng", nullable = false)
-    private Double lng;
-
-    // 주
-    @Column(name = "state", columnDefinition = "TEXT")
-    private String state;
-
-    // 도시
-    @Column(name = "city", columnDefinition = "TEXT")
-    private String city;
 }
 

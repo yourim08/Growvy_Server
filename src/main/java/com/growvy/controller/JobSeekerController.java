@@ -1,6 +1,9 @@
 package com.growvy.controller;
 
+import com.growvy.annotation.CurrentUser;
+import com.growvy.dto.req.NoteCreateRequest;
 import com.growvy.dto.res.JobPostResponse;
+import com.growvy.dto.res.JobSeekerJobPostResponse;
 import com.growvy.entity.JobSeekerProfile;
 import com.growvy.entity.User;
 import com.growvy.repository.ApplicationRepository;
@@ -8,6 +11,7 @@ import com.growvy.repository.JobPostRepository;
 import com.growvy.repository.JobSeekerProfileRepository;
 import com.growvy.repository.UserRepository;
 import com.growvy.service.JobSeekerService;
+import com.growvy.service.NoteService;
 import com.growvy.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
@@ -25,90 +29,56 @@ public class JobSeekerController {
     private final JwtUtil jwtProvider;
     private final UserRepository userRepository;
     private final JobSeekerService jobSeekerService;
+    private final NoteService noteService;
 
-    // 일 신청 API
-    @Operation(summary = "[JobSeeker] 공고 신청 API", description = "공고 신청 - 만약 count가 full이면 CLOSED로 변경")
-    @PostMapping("/apply")
-    public ResponseEntity<String> applyJob(
-            @RequestHeader("Authorization") String header,
-            @RequestBody Map<String, Long> body
+
+    // [JobSeeker] 신청한 일 목록 조회 API
+    @Operation(summary = "[JobSeeker] 지원한 공고 조회", description = "APPLIED 상태 공고")
+    @GetMapping("/posts/applied")
+    public List<JobSeekerJobPostResponse> getAppliedPosts(
+            @CurrentUser User user
     ) {
-        // 1. JWT 파싱
-        String jwt = header.replace("Bearer ", "").trim();
-        String firebaseUid = jwtProvider.getFirebaseUid(jwt);
-
-        // 2. User 조회
-        User user = userRepository.findByFirebaseUid(firebaseUid)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
-        // 3. JobSeekerProfile 조회
-        JobSeekerProfile seeker = user.getJobSeekerProfile();
-        if (seeker == null) {
-            throw new IllegalStateException("구직자 프로필이 없습니다.");
-        }
-
-        // 4. 요청값
-        Long jobPostId = body.get("jobPostId");
-        if (jobPostId == null) {
-            throw new IllegalArgumentException("jobPostId가 필요합니다.");
-        }
-
-        // 5. 서비스 호출
-        jobSeekerService.applyJob(seeker, jobPostId);
-
-        return ResponseEntity.ok("신청 완료");
+        return jobSeekerService.getAppliedJobPosts(user);
     }
 
-    // 신청한 일 목록 조회 API
-    @Operation(summary = "[JobSeeker] 신청한 일 목록 조회", description = "내가 신청한 모든 일 조회-DONE제외")
-    @GetMapping("/posts")
-    public ResponseEntity<List<JobPostResponse>> getMyAppliedJobs(
-            @RequestHeader("Authorization") String header
+
+    // [JobSeeker] 진행중인 일 목록 조회 API
+    @Operation(summary = "[JobSeeker] 진행중인 공고 조회", description = "ONGOING 상태 공고")
+    @GetMapping("/posts/ongoing")
+    public List<JobSeekerJobPostResponse> getOngoingPosts(
+            @CurrentUser User user
     ) {
-        String jwt = header.replace("Bearer ", "").trim();
-        String firebaseUid = jwtProvider.getFirebaseUid(jwt);
-
-        User user = userRepository.findByFirebaseUid(firebaseUid)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-        JobSeekerProfile jobSeeker = user.getJobSeekerProfile();
-
-        List<JobPostResponse> res = jobSeekerService.getMyAppliedJobs(jobSeeker);
-        return ResponseEntity.ok(res);
+        return jobSeekerService.getOngoingJobPosts(user);
     }
 
-    @Operation(summary = "[JobSeeker] DONE 공고 조회", description = "신청한 일 중 DONE 상태인 일 조회, type=works/volunteer 선택 가능")
+    // [JobSeeker] 완료한 일 목록 조회 API
+    @Operation(summary = "[JobSeeker] 완료한 공고 조회", description = "DONE 상태 공고")
     @GetMapping("/posts/done")
-    public List<JobPostResponse> getMyDoneJobs(
-            @RequestHeader("Authorization") String header,
-            @RequestParam(value = "type", required = false) String type // works / volunteer / null
+    public List<JobSeekerJobPostResponse> getDonePosts(
+            @CurrentUser User user
     ) {
-        String jwt = header.replace("Bearer ", "").trim();
-        String firebaseUid = jwtProvider.getFirebaseUid(jwt);
-
-        User user = userRepository.findByFirebaseUid(firebaseUid)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-        JobSeekerProfile jobSeeker = user.getJobSeekerProfile();
-
-        return jobSeekerService.getMyDoneJobs(jobSeeker, type);
+        return jobSeekerService.getDoneJobPosts(user);
     }
 
-    @Operation(summary = "[JobSeeker] 신청한 일 삭제", description = "특정 post 신청 취소")
-    @DeleteMapping("/cancel")
-    public ResponseEntity<String> cancelJob(
-            @RequestHeader("Authorization") String header,
-            @RequestBody Map<String, Long> body
+    // [JobSeeker] 공고 지원 API
+    @Operation(summary = "[JobSeeker] 공고 지원", description = "특정 공고에 지원")
+    @PostMapping("/posts/{postId}/apply")
+    public ResponseEntity<Void> applyJobPost(
+            @CurrentUser User user,
+            @PathVariable Long postId
     ) {
-        String jwt = header.replace("Bearer ", "").trim();
-        String firebaseUid = jwtProvider.getFirebaseUid(jwt);
-
-        User user = userRepository.findByFirebaseUid(firebaseUid)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-        JobSeekerProfile seeker = user.getJobSeekerProfile();
-
-        Long jobPostId = body.get("jobPostId");
-
-        jobSeekerService.cancelApplication(seeker, jobPostId);
-
-        return ResponseEntity.ok("신청 취소 완료");
+        jobSeekerService.applyJobPost(user, postId);
+        return ResponseEntity.ok().build();
     }
+
+    @Operation(summary = "[JobSeeker] 노트 작성", description = "완료한 일에 대한 노트 작성")
+    @PostMapping("/notes")
+    public ResponseEntity<Void> createNote(
+            @CurrentUser User user,
+            @RequestBody NoteCreateRequest req
+    ) {
+        noteService.createNote(user, req);
+        return ResponseEntity.ok().build();
+    }
+
 }
