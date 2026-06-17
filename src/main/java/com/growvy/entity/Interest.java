@@ -16,5 +16,22 @@ public class Interest {
     // 관심사 이름 (청소, 서빙, 물류 등 등)
     @Column(name = "name", columnDefinition = "TEXT")
     private String name;
+
+
+    // 관심사 유형 (INDUSTRY, SURVEY, EMPLOYMENT)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private InterestType type;
+
+    public enum InterestType {
+        INDUSTRY,
+        EMPLOYMENT,
+        ENERGY_STYLE,
+        WORK_ENVIRONMENT,
+        SOCIAL_PREFERENCE,
+        COMFORT_ZONE,
+        MAIN_GOAL,
+        WORK_PACE
+    }
 }
 

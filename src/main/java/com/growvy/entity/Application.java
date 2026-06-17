@@ -35,7 +35,7 @@ public class Application {
     }
 
     public enum Status {
-        APPLIED, CANCELED, ACCEPTED, DONE
+        APPLIED, ACCEPTED
     }
 }
 

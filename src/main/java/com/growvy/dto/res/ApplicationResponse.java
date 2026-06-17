@@ -1,15 +1,20 @@
 package com.growvy.dto.res;
 
 import com.growvy.entity.User;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
-@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ApplicationResponse {
     private Long applicationId;
-    private String status;
+    private Long userId;
     private String name;
-    private User.Gender gender;
+    private String profileImage;
     private Double averageRating;
+    private LocalDate birthDate;
+    private LocalDateTime appliedAt;
 }
