@@ -1,10 +1,12 @@
 package com.growvy.service;
 
+import com.growvy.dto.ChatDto;
 import com.growvy.dto.req.JobPostRequest;
 import com.growvy.dto.req.ReviewRequest;
 import com.growvy.dto.res.*;
 import com.growvy.entity.*;
 import com.growvy.repository.*;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +29,9 @@ public class EmployerService {
     private final ApplicationRepository applicationRepository;
     private final JobPostMemberRepository jobPostMemberRepository;
     private final ReviewRepository reviewRepository;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final ChatRoomRepository chatRoomRepository;
+    private final ChatMessageRepository chatMessageRepository;
 
     // [Employer] Hiring 공고 조회
     @Transactional(readOnly = true)
@@ -280,12 +285,12 @@ public class EmployerService {
 
     }
 
-    // [Employer] 지원자 수락 API
+    // [Employer] 지원자 수락 API & 채팅 보내기
     @Transactional
-    public void selectApplicants(
-            User employer,
-            Long postId,
-            List<Long> applicationIds
+    public List<Long> selectApplicants( // 🌟 수정: void -> List<Long> 반환으로 변경
+                                        User employer,
+                                        Long postId,
+                                        List<Long> applicationIds
     ) {
         JobPost post = jobPostRepository.findById(postId)
                 .orElseThrow(() ->
@@ -295,11 +300,13 @@ public class EmployerService {
             throw new IllegalArgumentException("본인 공고만 선발 가능합니다.");
         }
 
+
         if (applicationIds.size() != post.getCount()) {
             throw new IllegalArgumentException(
                     "모집 인원 수와 동일하게 선택해야 합니다."
             );
         }
+
 
         // APPLIED 상태 지원자만 조회
         List<Application> allApplications =
@@ -321,10 +328,14 @@ public class EmployerService {
             );
         }
 
+        // 🌟 추가: 생성된 채팅방 ID들을 담을 리스트
+        List<Long> createdRoomIds = new ArrayList<>();
+
         for (Application application : allApplications) {
 
             if (selectedIds.contains(application.getId())) {
 
+                // === [기존 로직] 지원자 수락 및 멤버 등록 ===
                 application.setStatus(Application.Status.ACCEPTED);
 
                 JobPostMember member = new JobPostMember();
@@ -336,11 +347,52 @@ public class EmployerService {
 
                 jobPostMemberRepository.save(member);
 
-            } else {
+                // =========================================================
+                // 🚀 [추가된 로직] 채팅방 1:1 생성 및 자동 메시지 전송
+                // =========================================================
 
+                // 1. 채팅방 조회 또는 생성 (이미 있으면 기존 방 반환, 없으면 새로 생성)
+                ChatRoom chatRoom = chatRoomRepository.findByJobPost_IdAndJobSeeker_UserId(postId, application.getJobSeeker().getUserId())
+                        .orElseGet(() -> {
+                            ChatRoom newRoom = ChatRoom.builder()
+                                    .jobPost(post)
+                                    .jobSeeker(application.getJobSeeker())
+                                    .employer(employer)
+                                    .build();
+                            return chatRoomRepository.save(newRoom);
+                        });
+
+                // 🌟 추가: 방금 만들어진(혹은 찾아온) 채팅방 ID를 리스트에 담습니다.
+                createdRoomIds.add(chatRoom.getId());
+
+                // 2. 보낼 환영 메시지 세팅
+                String welcomeMessage = "당신은 일 '" + post.getTitle() + "'에 수락되었습니다!";
+
+                ChatMessage message = ChatMessage.builder()
+                        .room(chatRoom)
+                        .sender(employer) // 구인자가 보낸 것으로 처리
+                        .content(welcomeMessage)
+                        .build();
+
+                // 3. 메시지를 DB에 저장
+                chatMessageRepository.save(message);
+
+                // 4. 웹소켓으로 프론트엔드에 실시간 메시지 쏘기
+                // ChatDto의 패키지/import 경로에 맞게 확인 필요
+                ChatDto chatDto = new ChatDto(chatRoom.getId(), employer.getId(), welcomeMessage);
+                messagingTemplate.convertAndSend("/sub/chat/room/" + chatRoom.getId(), chatDto);
+
+                // =========================================================
+
+            } else {
+                // === [기존 로직] 선택되지 않은 지원자 삭제 ===
+                // (참고: 1명씩 수락하는 경우, 나머지 지원자가 전부 삭제될 수 있으니 기획 의도에 맞는지 확인 필요)
                 applicationRepository.delete(application);
             }
         }
+
+        // 🌟 추가: 생성된 채팅방 ID 리스트를 반환합니다.
+        return createdRoomIds;
     }
 
     // [Employer] Done공고에 대해 리뷰 쓸 구직자들 목록 반환
@@ -363,23 +415,23 @@ public class EmployerService {
                 .map(member -> {
                     User targetUser = member.getJobSeeker().getUser();
 
-            // 프로필 이미지 URL 안전하게 가져오기
-            String profileImageUrl = null;
-            if (targetUser.getProfileImage() != null) {
-                profileImageUrl = targetUser.getProfileImage().getImageUrl();
-            }
+                    // 프로필 이미지 URL 안전하게 가져오기
+                    String profileImageUrl = null;
+                    if (targetUser.getProfileImage() != null) {
+                        profileImageUrl = targetUser.getProfileImage().getImageUrl();
+                    }
 
-            // 5. Set에 targetUser의 ID가 포함되어 있다면 이미 리뷰를 쓴 것 (isReviewed = true)
-            boolean isReviewed = reviewedUserIds.contains(targetUser.getId());
+                    // 5. Set에 targetUser의 ID가 포함되어 있다면 이미 리뷰를 쓴 것 (isReviewed = true)
+                    boolean isReviewed = reviewedUserIds.contains(targetUser.getId());
 
-            return ReviewTargetResponse.builder()
-                    .targetUserId(targetUser.getId())
-                    .name(targetUser.getName())
-                    .profileImage(profileImageUrl)
-                    .isReviewed(isReviewed) // 🌟 프론트에서 이 값을 보고 '작성 완료' 처리
-                    .build();
+                    return ReviewTargetResponse.builder()
+                            .targetUserId(targetUser.getId())
+                            .name(targetUser.getName())
+                            .profileImage(profileImageUrl)
+                            .isReviewed(isReviewed) // 🌟 프론트에서 이 값을 보고 '작성 완료' 처리
+                            .build();
 
-        }).toList();
+                }).toList();
     }
 
     // [Employer] 구직자에게 리뷰 달기

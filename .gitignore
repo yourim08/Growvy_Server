@@ -12,6 +12,8 @@ hs_err_pid*
 ### Build output ###
 /build/
 /out/
+/bin/
+bin/
 
 ### Gradle ###
 .gradle/
@@ -48,4 +50,6 @@ application-*.yml
 src/main/resources/*.env
 
 ### Docker ###
+/compose/
+/compose/*.yml
 *.tar

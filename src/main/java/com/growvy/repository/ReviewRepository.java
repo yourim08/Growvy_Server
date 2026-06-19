@@ -8,6 +8,8 @@ import java.util.List;
 
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
+    List<Review> findByTargetUserId(Long targetUserId);
+    List<Review> findByReviewerId(Long reviewerId);
     // 내가 특정 공고에서 남긴 리뷰 목록 조회
     List<Review> findByJobPost_IdAndReviewer_Id(Long postId, Long reviewerId);
 

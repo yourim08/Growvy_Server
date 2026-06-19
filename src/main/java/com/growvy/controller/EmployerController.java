@@ -17,7 +17,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/employer")
@@ -77,24 +79,33 @@ public class EmployerController {
         return employerService.getReviewTargets(employer, postId);
     }
 
-    @Operation(
-            summary = "[Employer] 지원자 선발",
-            description = "모집 인원만큼 지원자를 선발"
-    )
+
     @PostMapping("/posts/{postId}/select")
-    public ResponseEntity<Void> selectApplicants(
+    public ResponseEntity<?> selectApplicants(
             @CurrentUser User employer,
             @PathVariable Long postId,
             @RequestBody SelectApplicantsRequest request
     ) {
 
-        employerService.selectApplicants(
+        // 1. 서비스에서 생성된 채팅방 ID 리스트를 받아옵니다.
+        List<Long> createdRoomIds = employerService.selectApplicants(
                 employer,
                 postId,
                 request.getApplicationIds()
         );
 
-        return ResponseEntity.ok().build();
+        // 2. 응답 데이터를 담을 맵 생성
+        Map<String, Object> response = new HashMap<>();
+
+        // 3. 만약 생성된 채팅방이 있다면, 첫 번째 방 번호를 JSON에 담습니다.
+        if (createdRoomIds != null && !createdRoomIds.isEmpty()) {
+            response.put("roomId", createdRoomIds.get(0));
+        } else {
+            response.put("roomId", null); // 방이 생성되지 않은 경우
+        }
+
+        // 4. JSON 형태로 응답 반환
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/posts/{postId}/reviews")
