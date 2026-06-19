@@ -2,11 +2,20 @@ package com.growvy.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "chat_rooms")
+@Table(
+        name = "chat_rooms",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        columnNames = {"job_post_id", "job_seeker_id"}
+                )
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -18,21 +27,33 @@ public class ChatRoom {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 어떤 구인글과 관련된 채팅인지
-    @Column(name = "job_post_id", nullable = false)
-    private Long jobPostId;
+    // 어떤 공고의 채팅방인지
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "job_post_id", nullable = false)
+    private JobPost jobPost;
 
-    // 참여자
-    @Column(name = "job_seeker_id", nullable = false)
-    private Long jobSeekerId;
+    // 구직자
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "job_seeker_id", nullable = false)
+    private JobSeekerProfile jobSeeker;
 
-    @Column(name = "employer_id", nullable = false)
-    private Long employerId;
+    // 구인자
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "employer_id", nullable = false)
+    private User employer;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    // 메시지 리스트 (양방향)
-    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ChatMessage> messages;
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
+
+    @OneToMany(
+            mappedBy = "room",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<ChatMessage> messages = new ArrayList<>();
 }
